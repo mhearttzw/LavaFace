@@ -1,0 +1,334 @@
+.col-xs-5ths,
+.col-sm-5ths,
+.col-md-5ths,
+.col-lg-5ths {
+	position: relative;
+	min-height: 1px;
+	padding-right: 10px;
+	padding-left: 10px;
+}
+
+.col-xs-5ths {
+	width: 20%;
+	float: left;
+}
+
+@media (min-width: 768px) {
+	.col-sm-5ths {
+		width: 20%;
+		float: left;
+	}
+}
+
+@media (min-width: 992px) {
+	.col-md-5ths {
+		width: 20%;
+		float: left;
+	}
+}
+
+@media (min-width: 1200px) {
+	.col-lg-5ths {
+		width: 20%;
+		float: left;
+	}
+}
+
+.row-xs-flex-center,
+.row-sm-flex-center,
+.row-md-flex-center,
+.row-lg-flex-center {
+	display: flex;
+	align-items: center;
+}
+
+@media (min-width:768px) {
+	.row-sm-flex-center {
+		display: flex;
+		align-items: center;
+	}
+}
+
+@media (min-width: 992px) {
+	.row-md-flex-center {
+		display: flex;
+		align-items: center;
+	}
+}
+
+@media (min-width: 1200px) {
+	.row-lg-flex-center {
+		display: flex;
+		align-items: center;
+	}
+}
+
+.col-xs-offset-35,
+.col-sm-offset-35,
+.col-md-offset-35,
+.col-lg-offset-35 {
+	margin-left: 29.1666667%;
+}
+
+div.popup-pynxl {
+	color: #808080;
+	display: inline-block;
+	position: relative;
+}
+
+div.popup-pynxl:hover {
+	border-bottom: 1px #0099CC dotted;
+	color: #f40;
+}
+
+div.popup-pynxl>div.info {
+	background-color: #fff;
+	border: 1px solid #d2d2d2;
+	border-radius: 4px;
+	box-shadow: 0 4px 10px rgba(0,0,0,.12);
+	height: 190px;
+	left: -68px;
+	opacity: 0;
+	position: absolute;
+	text-align: center;
+	top: -207px;
+	transition: .2s opacity ease,visibility .2s;
+	visibility: hidden;
+	width: 170px;
+	z-index: 100;
+}
+
+div.popup-pynxl>div.info:before {
+	border-bottom: solid 7px transparent;
+	border-left: solid 7px transparent;
+	border-right: solid 7px transparent;
+	border-top: solid 7px transparent;
+	border-top-color: #d2d2d2;
+	bottom: -14px;
+	content: "";
+	left: 78px;
+	position: absolute;
+}
+
+div.popup-pynxl>div.info:after {
+	border-bottom: solid 6px transparent;
+	border-left: solid 6px transparent;
+	border-right: solid 6px transparent;
+	border-top: solid 6px transparent;
+	border-top-color: #fff;
+	bottom: -12px;
+	content: "";
+	left: 78px;
+	position: absolute;
+}
+
+div.popup-pynxl>div.info>div.title {
+	background-color: #f7f7f7;
+	border-radius: 4px;
+	color: #999;
+	font-size: 13px;
+	height: 32px;
+	line-height: 32px;
+}
+
+div.popup-pynxl>div.info>img {
+	height: 105px;
+	margin: 5px auto 0;
+	width: 105px;
+}
+
+div.popup-pynxl>div.info>div.hint {
+	color: #999;
+	font-size: 13px;
+	line-height: 15px;
+	margin: 8px auto;
+	width: 120px;
+	white-space: normal;
+}
+
+div.popup-pynxl:hover>div.info {
+	opacity: 1;
+	visibility: visible;
+}
+
+/* 返回顶部 */
+div.back2top {
+	position: fixed;
+	right: 30px;
+	bottom: 30px;
+	border-radius: 3px;
+	height: 40px;
+	width: 40px;
+	text-align: center;
+	line-height: 42px;
+	transition: .5s;
+	background: rgba(0,0,0,.5);
+	color: #fff;
+	cursor: pointer;
+}
+
+div.back2top>a,
+div.back2top>a:hover,
+div.back2top>a:focus {
+	color: #fff;
+}
+
+/* 元素 */
+div.item-pynxl {
+	float: left;
+	margin: 7px 0;
+	border: 1px solid rgba(0,0,0,.05);
+	transition: border-color .2s;
+	width: 100%;
+}
+
+div.item-pynxl:hover {
+	box-shadow: 0 1px 3px 0 rgba(0,0,0,.08);
+	border-color: #f40;
+}
+
+div.item-pynxl>div.showimg>a>img {
+	height: 220px;
+	width: 100%;
+}
+
+div.row-1,
+div.row-2,
+div.row-3 {
+	margin: 6px 0;
+	overflow: hidden;
+	padding: 0 10px;
+}
+
+div.row-1>div {
+	font-size: 18px;
+	zoom: 1;
+}
+
+div.row-1>div>span {
+	margin-right: 3px;
+	color: #F40;
+}
+
+div.row-1>div>strong {
+	color: #F40;
+	font-weight: 700;
+	font-family: verdana,arial;
+}
+
+div.row-2>div>a {
+	font-size: 14px;
+	font-weight: 400;
+	line-height: 20px;
+}
+
+div.row-2>div>a:focus,
+div.row-2>div>a:hover {
+	color: #f40;
+	text-decoration: underline;
+}
+
+div.row-3>time {
+	color: #999;
+	float: left;
+	font-size: 1.2rem;
+}
+
+div.row-3>div.item-meta {
+	color: #999;
+	float: right;
+	font-size: 1.2rem;
+}
+
+/* 图片 */
+div.hovereffect {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	position: relative;
+	cursor: default;
+}
+
+div.hovereffect>div.overlay {
+	height: auto;
+	width: 100%;
+	position: absolute;
+	overflow: hidden;
+	left: 0;
+	top: auto;
+	bottom: 0;
+	padding: 10px 0;
+	opacity: 0;
+	background-color: rgba(0,0,0,0.5);
+	-webkit-transition: -webkit-transform 0.35s;
+	transition: transform 0.35s;
+	-webkit-transform: translate3d(0,100%,0);
+	transform: translate3d(0,100%,0);
+}
+
+div.hovereffect>a>img {
+	display: block;
+	position: relative;
+	-webkit-transition: all .4s linear;
+	transition: all .4s linear;
+}
+
+div.hovereffect>div.overlay>div.info,
+div.hovereffect>div.overlay>div.labels {
+	text-transform: uppercase;
+	background-color: transparent;
+	-webkit-transition: all .2s ease-in-out;
+	transition: all .2s ease-in-out;
+	padding: 3px 12px;
+}
+
+
+div.hovereffect>div.overlay>div.info>a {
+	color: #fff;
+	text-decoration: none;
+	-webkit-transition: all .2s ease-in-out;
+	transition: all .2s ease-in-out;
+}
+
+div.hovereffect>div.overlay>div.info>span {
+	color: #ff2020;
+	float: right;
+	-webkit-transition: all .2s ease-in-out;
+	transition: all .2s ease-in-out;
+}
+
+div.hovereffect:hover>a>img {
+	-ms-transform: scale(1.2);
+	-webkit-transform: scale(1.2);
+	transform: scale(1.2);
+}
+
+div.hovereffect:hover>div.overlay {
+	opacity: 1;
+	filter: alpha(opacity=100);
+	-webkit-transform: translate3d(0,0,0);
+	transform: translate3d(0,0,0);
+}
+
+div.hovereffect:hover>div.overlay>div.info>a {
+	-webkit-transition-delay: .2s;
+	transition-delay: .2s;
+}
+
+div.hovereffect:hover>div.overlay>div.labels {
+	-webkit-transition-delay: .2s;
+	transition-delay: .2s;
+}
+
+/* 图片链 */
+div.showimg>a:focus>img,
+div.showimg>a:hover>img {
+	opacity: 0.9;
+	filter: alpha(opacity=90)
+}
+
+/* 图片 */
+div.facetrack-image-row>img {
+	margin: 3px 3px;
+}
+

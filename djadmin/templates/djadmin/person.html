@@ -1,0 +1,187 @@
+{% extends "djadmin/base.html" %}
+
+{% load staticfiles %}
+
+{% block title %}<title>{{ site_info.site_name }}控制台</title>{% endblock %}
+{% block keywords %}<meta name="keywords" content="{{ site_info.site_keywords }}"/>{% endblock %}
+{% block description %}<meta name="description" content="{{ site_info.site_description }}"/>{% endblock %}
+
+{% block main %}
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>
+            {{ site_info.site_name }}
+            <small>控制台</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="#"><i class="fa fa-dashboard"></i>&nbsp;首页</a></li>
+            <li><a href="#">
+                {% for menu in menu_list %}
+                    {% ifequal menu.id menu_now.menu_pid %}
+                        {{ menu.menu_name }}
+                    {% endifequal %}
+                {% endfor %}
+            </a></li>
+            <li class="active">{{ menu_now.menu_name }}</li>
+        </ol>
+    </section>
+
+    <section class="content">
+        {% if messages %}
+            <div class="callout callout-info">
+                <h4>提示：</h4>
+                {% for message in messages %}
+                    <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="add-button">
+            <p class="text-right">
+                <a href="/djadmin/person/add" class="btn btn-primary"><i class="fa fa-fw fa-plus"></i> 创建新人物</a>
+            </p>
+        </div>
+
+        <div class="box box-primary">
+            <div class="box-header">
+                <h3 class="box-title">{{ menu_now.menu_name }}</h3>
+                <div class="box-tools">
+                    <form action="/djadmin/person" method="GET">
+                        <div class="input-group input-group-sm" style="width: 150px;">
+                            <input type="text" name="q" class="form-control pull-right" placeholder="Search">
+
+                            <div class="input-group-btn">
+                                <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body table-responsive no-padding">
+                <table class="table table-hover">
+                    <tbody>
+                        <tr>
+                            <th>编号</th>
+                            <th>人物ID</th>
+                            <th>姓名</th>
+                            <th>性别</th>
+                            <th>年龄</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                        {% for person in persons %}
+                            <tr>
+                                <td>{{ person.id }}</td>
+                                <td>{{ person.pid }}</td>
+                                <td><a href="/djadmin/person/{{ person.id }}/change">{{ person.name }}</a></td>
+                                <td>
+                                    {% ifequal person.gender 1 %}
+                                        <span class="label label-success">男</span>
+                                    {% else %}
+                                        <span class="label label-warning">女</span>
+                                    {% endifequal %}
+                                </td>
+                                <td>
+                                    {% if person.age == 0 %}
+                                        年龄段不详
+                                    {% elif person.age == 1 %}
+                                        未成年(0-17周岁)
+                                    {% elif person.age == 2 %}
+                                        青年(18-39周岁)
+                                    {% elif person.age == 3 %}
+                                        中年(40-59周岁)
+                                    {% else %}
+                                        老年(60周岁以上)
+                                    {% endif %}
+                                </td>
+                                <td>{{ person.created_time|date:"Y-m-d H:i:s" }}</td>
+                                <td>
+                                    <a href="/djadmin/person/{{ person.id }}/change">编辑人物</a>
+                                    &nbsp;
+                                    <a href="javascript:void(0);" person-id="{{ person.id }}" class="show-facetrack">人物序列</a>
+                                    {% ifequal person.merge_flag 1 %}
+                                        &nbsp;
+                                        <a href="javascript:void(0);" person-id="{{ person.id }}" class="match-similar-person">检索相似</a>
+                                    {% endifequal %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- /.box-body -->
+
+            <div class="box-footer clearfix">
+                <ul class="pagination no-margin pull-right">
+                    <li>
+                        {% if persons.has_previous %}
+                            <a href="/djadmin/person?q={{ query }}&page={{ persons.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        {% endif %}
+                    </li>
+
+                    {% for page_num in page_range %}
+                        {% ifequal page_num persons.number %}
+                            <li class="active">
+                                <span class="current">{{ persons.number }}</span>
+                            </li>
+                        {% else %}
+                            <li>
+                                <a href="/djadmin/person?q={{ query }}&page={{ page_num }}"">
+                                    <span>{{ page_num }}</span>
+                                </a>
+                            </li>
+                        {% endifequal %}
+                    {% endfor %}  
+
+                    <li>
+                        {% if persons.has_next %}
+                            <a href="/djadmin/person?q={{ query }}&page={{ persons.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        {% endif %}
+                    </li>
+                    <li><span>查询到{{ query_num }}条记录</span></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    $(function () {
+        $("a.show-facetrack").click(function() {
+            $(this).css('color', 'red');
+            var person_id = $(this).attr("person-id");
+            var url = 'http://lavaface.kalava.cn/djadmin/person/' + person_id + '/viewpersonfacetrack';
+            layer.open({
+                type: 2,
+                title: '人物详情',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['980px', '90%'],
+                content: url,
+            }); 
+        });
+
+        $("a.match-similar-person").click(function() {
+            $(this).css('color', 'red');
+            var person_id = $(this).attr("person-id");
+            var url = 'http://lavaface.kalava.cn/djadmin/person/' + person_id + '/showsimilarperson';
+            layer.open({
+                type: 2,
+                title: '相似人物',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['980px', '90%'],
+                content: url,
+            }); 
+        });
+    });
+</script>
+
+{% endblock %}
+

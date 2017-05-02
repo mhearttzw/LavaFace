@@ -1,0 +1,84 @@
+{% extends "djadmin/base.html" %}
+
+{% load staticfiles %}
+
+{% block title %}<title>{{ site_info.site_name }}控制台</title>{% endblock %}
+{% block keywords %}<meta name="keywords" content="{{ site_info.site_keywords }}"/>{% endblock %}
+{% block description %}<meta name="description" content="{{ site_info.site_description }}"/>{% endblock %}
+
+{% block main %}
+
+<div class="content-wrapper">
+    <section class="content-header">
+    </section>
+
+    <section class="invoice">
+        <!-- title row -->
+        <div class="row">
+            <div class="col-xs-12">
+                <h2 class="page-header">
+                    {{ task.task_name }}
+                    <small class="pull-right"></small>
+                </h2>
+            </div>
+        </div>
+        
+        <!-- info row -->
+        <div class="box-body">
+            <dl class="dl-horizontal">
+                <dt>任务名称</dt>
+                <dd>{{ task.task_name }}</dd>
+                <dt>任务描述</dt>
+                <dd>{{ task.task_description }}</dd>
+                <dt>关键词</dt>
+                <dd>{{ task.task_keywords}}</dd>
+                <dt>总单元数</dt>
+                <dd>{{ task_progress.total }}</dd>
+                <dt>已完成单元数</dt>
+                <dd>{{ task_progress.valid }}</dd>
+                <dt>跳过单元数</dt>
+                <dd>{{ task_progress.skipped }}</dd>
+                <dt>任务进度</dt>
+                <dd><span class="badge bg-green">{{ task_progress.progress|floatformat:2 }}%</span></dd>
+                <dt>创建时间</dt>
+                <dd>{{ task.created_time|date:"Y年m月d日" }}</dd>
+            </dl>
+
+            <div class="box">
+                <div class="box-header">
+                    <h5>任务信息统计</h5>
+                </div>
+                <div class="box-body no-padding">
+                    <table class="table table-condensed">
+                        <tbody>
+                            <tr>
+                                <th>日期</th>
+                                <th>用户名</th>
+                                <th>序列完成量</th>
+                                <th>序列跳过量</th>
+                                <th>序列摘除量</th>
+                                <th>序列图片量</th>
+                                <th>工作时间(小时)</th>
+                                <th>工作效率(序列数/小时)</th>
+                            </tr>
+                            {% for stat in stats %}
+                                <tr>
+                                    <td>{{ stat.proc_date|date:"Y-m-d" }}</td>
+                                    <td>{{ stat.user.username }}</td>
+                                    <td>{{ stat.facetracks_total }}</td>
+                                    <td>{{ stat.facetracks_skipped }}</td>
+                                    <td>{{ stat.facetracks_removed }}</td>
+                                    <td>{{ stat.images_viewed }}</td>
+                                    <td>{{ stat.consumed_time|divide:3600.00|floatformat:3 }}</td>
+                                    <td>{{ stat.work_efficiency|floatformat:2 }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+          </div>
+        </div>
+    </section>
+</div>
+
+{% endblock %}

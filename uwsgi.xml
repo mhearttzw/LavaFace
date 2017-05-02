@@ -1,0 +1,8 @@
+<uwsgi>
+	<socket>127.0.0.1:6666</socket>
+	<module>pynxl.wsgi</module>
+	<processes>8</processes>
+	<vacuum>True</vacuum>
+	<plugins>python</plugins>
+	<daemonize>logs/uwsgi.log</daemonize>
+</uwsgi>

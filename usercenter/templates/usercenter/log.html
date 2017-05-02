@@ -1,0 +1,170 @@
+{% extends "usercenter/base.html" %}
+
+{% load staticfiles %}
+
+{% block title %}<title>{{ site_info.site_name }}控制台</title>{% endblock %}
+{% block keywords %}<meta name="keywords" content="{{ site_info.site_keywords }}"/>{% endblock %}
+{% block description %}<meta name="description" content="{{ site_info.site_description }}"/>{% endblock %}
+
+{% block main %}
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>
+            {{ site_info.site_name }}
+            <small>控制台</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="#"><i class="fa fa-dashboard"></i>&nbsp;首页</a></li>
+            <li><a href="#">
+                {% for menu in menu_list %}
+                    {% ifequal menu.id menu_now.pid %}
+                        {{ menu.name }}
+                    {% endifequal %}
+                {% endfor %}
+            </a></li>
+            <li class="active">{{ menu_now.name }}</li>
+        </ol>
+    </section>
+
+    <section class="content">
+        {% if messages %}
+            <div class="callout callout-info">
+                <h4>提示：</h4>
+                {% for message in messages %}
+                    <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="box box-primary">
+            <div class="box-header">
+                <h3 class="box-title">{{ menu_now.name }}</h3>
+                <div class="box-tools">
+                    <form action="/usercenter/log" method="GET">
+                        <div class="input-group input-group-sm" style="width: 200px;">
+                            <input type="text" name="q" class="form-control pull-right" placeholder="任务ID/序列ID">
+
+                            <div class="input-group-btn">
+                                <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body table-responsive no-padding">
+                <table class="table table-hover facetrack-list">
+                    <tbody>
+                        <tr>
+                            <th>编号</th>
+                            <th>任务名</th>
+                            <th>FaceTrack ID</th>
+                            <th style="text-align: center;">监控场景</th>
+                            <th>操作</th>
+                            <th>完成时间</th>
+                        </tr>
+                        {% for facetrack in facetracks %}
+                            <tr>
+                                <td>{{ facetrack.id }}</td>
+                                <td>{{ facetrack.task.task_name }}</td>
+                                <td>{{ facetrack.facetrack_id }}</td>
+                                <td><img src="/{{ facetrack.image_path }}" style="height: 200px; width: auto"></a></td>
+                                <td>
+                                    <a href="javascript:void(0);" person-id="{{ facetrack.person_id }}" class="btn btn-success btn-sm edit-person">编辑人物</a>
+                                    &nbsp;
+                                    <a href="javascript:void(0);" person-id="{{ facetrack.person_id }}" class="btn btn-success btn-sm person-detail">人物详情</a>
+                                </td>
+                                <td>
+                                    {{ facetrack.format_time }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- /.box-body -->
+
+            <div class="box-footer clearfix">
+                <ul class="pagination no-margin pull-right">
+                    <li>
+                        {% if facetracks.has_previous %}
+                            <a href="/usercenter/log?q={{ query }}&page={{ facetracks.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        {% endif %}
+                    </li>
+
+                    {% for page_num in page_range %}
+                        {% ifequal page_num facetracks.number %}
+                            <li class="active">
+                                <span class="current">{{ facetracks.number }}</span>
+                            </li>
+                        {% else %}
+                            <li>
+                                <a href="/usercenter/log?q={{ query }}&page={{ page_num }}"">
+                                    <span>{{ page_num }}</span>
+                                </a>
+                            </li>
+                        {% endifequal %}
+                    {% endfor %}  
+
+                    <li>
+                        {% if facetracks.has_next %}
+                            <a href="/usercenter/log?q={{ query }}&page={{ facetracks.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        {% endif %}
+                    </li>
+                    <li><span>查询到{{ query_num }}条记录</span></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    $(function () {
+        $(".facetrack-list").on("click", "img", function() {
+            var imgurl = $(this).attr("src");
+            var html = '<img src="' + imgurl + '" class="img-responsive" style="width: 100%;">'
+            layer.open({
+                type: 1,
+                title: false,
+                closeBtn: 0,
+                area: '516px',
+                skin: 'layui-layer-nobg',
+                shadeClose: true,
+                content: html
+            });
+        });
+
+        $(".facetrack-list").on("click", "a.edit-person", function() {
+            var person_id = $(this).attr("person-id");
+            var url = 'http://lavaface.kalava.cn/usercenter/person/' + person_id + '/change';
+            layer.open({
+                type: 2,
+                title: '编辑人物',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['500px', '90%'],
+                content: url,
+            }); 
+        });
+
+        $(".facetrack-list").on("click", "a.person-detail", function() {
+            var person_id = $(this).attr("person-id");
+            var url = 'http://lavaface.kalava.cn/usercenter/person/' + person_id + '/facetrack';
+            layer.open({
+                type: 2,
+                title: '人物详情',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['980px', '90%'],
+                content: url,
+            }); 
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LavaFace数据处理平台</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+
+    <!-- jQuery 2.2.3 -->
+    <script src="/static/djadmin/plugins/jQuery/jquery-2.2.3.min.js"></script>
+    <!-- jQuery cookie plugins -->
+    <script src="/static/js/jquery/jquery.cookie.js"></script>
+</head>
+<body>
+<canvas height="500" width="100" id="canvas"></canvas>
+<div class="head">
+    <div class="header">
+        <div id="logo"></div>
+        <div class="menu">
+            <div class="login">登录</div>
+            <div class="register">注册</div>
+        </div>
+    </div>
+</div>
+<div class="content">
+    <h2><img src="/static/img/Lava++-.png" alt="lava++"></h2>
+    <h3>LavaFace数据处理平台</h3>
+    <div id="login">
+        <form>
+            {% csrf_token %}
+            <br>
+            <br>
+            <input type="text" placeholder="请输入用户名" id="login-username" name="login-username" required="required"><br>
+            <input type="password" id="login-password" name="login-password" placeholder="请输入密码" required="required"><br>
+            <p class="error" style="text-align: center"></p>
+            <br>
+            <input type="submit" id="login-button" value="登录" style="cursor: pointer">
+            <a href="javascript:;"><div class="change_password">修改密码</div></a>
+            <a href="javascript:;"><div class="register_account">注册</div></a>
+        </form>
+    </div>
+    <div class="line"></div>
+    <div class="font">第三方登录</div>
+    <div class="icon">
+        <div class="icon_qq" style="cursor: pointer"><img src="/static/img/QQ.png" alt="qq"></div>
+        <div class="icon_wb" style="cursor: pointer"><img src="/static/img/weibo.png" alt="wb" style="margin: 0 50px"></div>
+        <div class="icon_wx" style="cursor: pointer"><img src="/static/img/wx.png" alt="wx"></div>
+    </div>
+    <div class="agreement">使用即同意<a href="#" style="text-decoration: none">《用户服务协议》</a></div>
+</div>
+<div class="foot"></div>
+
+</body>
+<script type="text/javascript">
+    function checkFields() {
+        return ($("#login-username").val() && $("#login-password").val());
+    }
+
+    $('#login-button').click(function() {
+        $(".alert").remove();
+
+        if(checkFields()) {
+            $.ajax({
+                type:"POST",
+                url:"/usercenter/logincheck",
+                data: {
+                    "username":$("#login-username").val(),
+                    "password":$("#login-password").val()
+                },
+                beforeSend:function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));  
+                },
+                success:function(data) {
+                    var status = data["status"];
+                    if(status == 0) {
+                        var result = findGetParam("next");
+                        if (result)
+                            location.replace(result);
+                        else
+                            location.replace("/usercenter/main");
+                    } else {
+                        var error_message = "";
+                        for (var key in data["errors"])
+                            error_message += data["errors"][key];
+                        $(".error").text(error_message);
+                    }
+                },
+                error:function(XMLHttpRequest, textStatus, errorThrown) {
+                    alert(XMLHttpRequest.responseText);
+                }
+            });
+        } else {
+            alert("字段不能为空！");
+        }
+        return false;
+    });
+
+    function findGetParam(param) {
+        var result = null;
+        var temp = [];
+        location.search
+            .substr(1)
+            .split("&")
+            .forEach(function (item) {
+                temp = item.split("=");
+                if(temp[0] == param)
+                    result = decodeURIComponent(temp[1]);
+            });
+        return result;
+    }
+
+    var canvasEl = document.getElementById('canvas');
+    var ctx = canvasEl.getContext('2d');
+    var mousePos = [0, 0];
+
+    var easingFactor = 5.0;
+    var img = document.getElementById('img');
+    var backgroundColor = 'white'
+    var nodeColor = 'rgba(89,114,255,.6)';
+    var edgeColor = '#66f';
+    var imgEye = new Image();
+
+    var nodes = [];
+    var edges = [];
+
+    function constructNodes() {
+        for (var i = 0; i < 50; i++) {
+            var node = {
+                drivenByMouse: i == 0,
+                x: Math.random() * canvasEl.width,
+                y: Math.random() * canvasEl.height,
+                vx: Math.random() * 1 - 0.5,
+                vy: Math.random() * 1 - 0.5,
+                radius: Math.random() > 0.9 ? 3 + Math.random() * 3 : 1 + Math.random() * 3
+            };
+            nodes.push(node);
+        }
+        nodes.forEach(function (e) {
+            nodes.forEach(function (e2) {
+                if (e == e2) {
+                    return;
+                }
+                var edge = {
+                    from: e,
+                    to: e2
+                }
+                addEdge(edge);
+            });
+        });
+    }
+
+    function addEdge(edge) {
+        var ignore = false;
+
+        edges.forEach(function (e) {
+            if (e.from == edge.from && e.to == edge.to) {
+                ignore = true;
+            }
+
+            if (e.to == edge.from && e.from == edge.to) {
+                ignore = true;
+            }
+        });
+
+        if (!ignore) {
+            edges.push(edge);
+        }
+    }
+
+    function step() {
+        nodes.forEach(function (e) {
+            if (e.drivenByMouse) {
+                return;
+            }
+
+            e.x += e.vx;
+            e.y += e.vy;
+
+            function clamp(min, max, value) {
+                if (value > max) {
+                    return max;
+                } else if (value < min) {
+                    return min;
+                } else {
+                    return value;
+                }
+            }
+
+            if (e.x <= 0 || e.x >= canvasEl.width) {
+                e.vx *= -1;
+                e.x = clamp(0, canvasEl.width, e.x)
+            }
+
+            if (e.y <= 0 || e.y >= canvasEl.height) {
+                e.vy *= -1;
+                e.y = clamp(0, canvasEl.height, e.y)
+            }
+        });
+
+        adjustNodeDrivenByMouse();
+        render();
+        window.requestAnimationFrame(step);
+    }
+    function adjustNodeDrivenByMouse() {
+        nodes[0].x += (mousePos[0] - nodes[0].x) / easingFactor;
+        nodes[0].y += (mousePos[1] - nodes[0].y) / easingFactor;
+    }
+
+    function lengthOfEdge(edge) {
+        return Math.sqrt(Math.pow((edge.from.x - edge.to.x), 2) + Math.pow((edge.from.y - edge.to.y), 2));
+    }
+
+    function render() {
+//    ctx.fillStyle = backgroundColor;
+        ctx.fillStyle = 'white';
+
+        ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+//    ctx.drawImage(img,0,0, canvasEl.width, canvasEl.height)
+//    ctx.drawImage(imgEye, 200,200, 100, 100)
+
+
+        edges.forEach(function (e) {
+            var l = lengthOfEdge(e);
+            var threshold = canvasEl.width / 4;
+//线的长短
+            if (l > threshold) {
+                return;
+            }
+
+            ctx.strokeStyle = edgeColor;
+            ctx.lineWidth = (1.0 - l / threshold) *.8;
+//        线的粗细
+            ctx.globalAlpha = (1.0 - l / threshold)*.5;
+            ctx.beginPath();
+            ctx.moveTo(e.from.x, e.from.y);
+            ctx.lineTo(e.to.x, e.to.y);
+            ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+
+        nodes.forEach(function (e) {
+            if (e.drivenByMouse) {
+                return;
+            }
+
+            ctx.fillStyle = nodeColor;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.radius*.6, 0, 2 * Math.PI);
+//        点的位置和大小
+            ctx.fill();
+        });
+    }
+
+    window.onresize = function () {
+        canvasEl.width = document.body.clientWidth;
+        canvasEl.height = canvasEl.clientHeight;
+
+        if (nodes.length == 0) {
+            constructNodes();
+        }
+        render();
+    };
+
+    window.onmousemove = function (e) {
+        mousePos[0] = e.clientX;
+        mousePos[1] = e.clientY;
+    }
+
+    window.onresize(); // trigger the event manually.
+    window.requestAnimationFrame(step);
+</script>
+</html>

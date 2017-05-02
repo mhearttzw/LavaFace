@@ -1,0 +1,496 @@
+{% extends "usercenter/base.html" %}
+
+{% load staticfiles %}
+
+{% block title %}<title>{{ site_info.site_name }}控制台</title>{% endblock %}
+{% block keywords %}<meta name="keywords" content="{{ site_info.site_keywords }}"/>{% endblock %}
+{% block description %}<meta name="description" content="{{ site_info.site_description }}"/>{% endblock %}
+
+{% block main %}
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>
+            {{ site_info.site_name }}
+            <small>控制台</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="#"><i class="fa fa-dashboard"></i>&nbsp;首页</a></li>
+            <li><a href="#">
+                {% for menu in menu_list %}
+                    {% ifequal menu.id menu_now.pid %}
+                        {{ menu.name }}
+                    {% endifequal %}
+                {% endfor %}
+            </a></li>
+            <li class="active">{{ menu_now.name }}</li>
+        </ol>
+    </section>
+
+    <section class="content">
+        <div class="box box-primary">
+            <div class="box-header with-border">
+                <h3 class="box-title" id="box-title" data-index="{{ task.id }}">{{ task.task_name }}</h3>
+            </div>
+            <!-- /.box-alert -->
+            <div class="box-body">
+                <div class="row controls">
+                    <div class="col-md-4">
+                    </div>
+                    <div class="col-md-8">
+                        <div id="task-progress" class="pull-right"></div>
+                    </div>
+                </div>
+                <div id="facetrack" class="data-body facetrack" style="margin: 20px 0">
+                    <div class="facetrack-image" style="margin: 5px 0">
+                    </div>
+                    <div class="facetrack-remark text-center" style="margin: 10px 0">
+                        <span>（小提示：双击删除图片）</span>
+                    </div>
+                    <div class="facetrack-option text-center" style="margin: 10px 0">
+                    </div>
+                    <div class="facetrack-add-person" style="margin: 20px 0;">
+                        <div id="create-person-form" class="row" style="display: none">
+                            <div class="col-xs-2 col-xs-offset-3">
+                                <input type="text" id="person-name" class="form-control" name="person-name" placeholder="姓名" value="未知">
+                            </div>
+                            <div class="col-xs-2">
+                                <select class="form-control" id="person-age" class="form-control" name="person-age">
+                                    <option value="0">年龄段不详</option>
+                                    <option value="1">未成年(0-17周岁)</option>
+                                    <option value="2" selected>青年(18-39周岁)</option>
+                                    <option value="3">中年(40-59周岁)</option>
+                                    <option value="4">老年(60周岁以上)</option>
+                                </select>
+                            </div>
+                            <div class="col-xs-1">
+                                <label>性别：</label>
+                                <input type="radio" name="gender" value="1" checked> 男
+                                <input type="radio" name="gender" value="0"> 女
+                            </div>
+                            <div class="col-xs-1">
+                                <button type="submit" class="btn btn-success addfacetrack2newperson">创建并添加</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="person-matches" style="margin: 20px 0">
+                        <ul class="list-group person-list">
+                        </ul>
+                    </div>
+                    <div class="facetrack-matches" style="margin: 20px 0">
+                        <ul class="list-group facetrack-list">
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /.box-body -->
+        </div>
+    </section>
+</div>
+
+<script>
+    $(function () {
+        $(".facetrack-image").on("dblclick", "img", function() {
+            var imgurl = $(this).attr("src");
+            var task_id = document.getElementById('box-title').attributes['data-index'].value;
+            var facetrack_id = $(".person-list").attr("facetrack_id");
+
+            var this_img = $(this);
+            $.post(
+                '/usercenter/task/' + task_id + '/deletefacetrackimg',
+                {data: JSON.stringify({'imgurl': imgurl, 'facetrack_id': facetrack_id})},
+                function(data) {
+                    var status = data["status"];
+                    if(status == 0) {
+                        this_img.remove();
+                        layer.msg('删除图片成功！');
+                    } else {
+                        alert("亲，删除图片失败！");
+                    }
+                }, "json"
+            );
+        });
+
+        $(".person-list, .facetrack-list").on("click", "img", function() {
+            var imgurl = $(this).attr("src");
+            var html = '<img src="' + imgurl + '" class="img-responsive" style="width: 100%;">'
+            layer.open({
+                type: 1,
+                title: false,
+                closeBtn: 0,
+                area: '516px',
+                skin: 'layui-layer-nobg',
+                shadeClose: true,
+                content: html
+            });
+        });
+
+        $(".person-list").on("click", "a", function() {
+            var person_id = $(this).attr("person-id");
+            var url = 'http://lavaface.kalava.cn/usercenter/person/' + person_id + '/facetrack';
+            layer.open({
+                type: 2,
+                title: '人物详情',
+                shadeClose: true,
+                shade: 0.8,
+                area: ['980px', '90%'],
+                content: url,
+            }); 
+        });
+
+        $(".facetrack-image").on("click", ".facetrack-big-image>div>img", function() {
+            var imgurl = $(this).attr("src");
+            var html = '<img src="' + imgurl + '" class="img-responsive" style="width: 100%;">'
+            layer.open({
+                type: 1,
+                title: false,
+                closeBtn: 0,
+                area: '516px',
+                skin: 'layui-layer-nobg',
+                shadeClose: true,
+                content: html
+            });
+        });
+
+        $(".facetrack-option").on("click", ".createperson", function() {
+            $('#create-person-form').slideToggle("fast");
+        });
+
+        getData();
+
+        function getData() {
+            var task_id = document.getElementById('box-title').attributes['data-index'].value;
+            var index = layer.load(0, {time: 10*1000});
+            $.post(
+                '/usercenter/task/' + task_id + '/allocate',
+                {'task_id': task_id},
+                function(data) {
+                    var status = data["status"];
+                    if(status == 0) {
+                        var facetrack_id = data["data"]["items"][0]["facetrack_id"];
+                        $('.person-list').attr('facetrack_id', facetrack_id);
+
+                        var task_str = '我完成的: '
+                            + data["data"]["mine"]
+                            + ' / 我跳过的: ' 
+                            + data["data"]["deleted"]
+                            + ' / 剩余: ' 
+                            + data["data"]["left"]
+                            + ' / 总计: ' 
+                            + data["data"]["total"];
+                        $('#task-progress').text(task_str);
+
+                        html = '<div class="row row-md-flex-center">';
+                        var items = data["data"]["items"];
+                        for(var i in items) {
+                            var images = items[i]['images'];
+                            html += '<div class="facetrack-big-image col-sm-3 col-sm-offset-2">'
+                                + '<div><img class="img-responsive" src="/' + items[i]['big_image'] + '" alt="Photo"></div>'
+                                + '<div class="text-center">' + items[i]['tracking_time'] + '</div>'
+                                + '</div>';
+                            html += '<div class="col-sm-5">';
+                            for (var j=0; j<images.length; ++j) {
+                                if(j % 4 == 0)
+                                    html += '<div class="row" style="margin-bottom: 10px;">';
+                                html += '<div class="col-sm-3"><img class="img-responsive" src="' + images[j] + '" alt="Photo"></div>';
+                                if(j % 4 == 3)
+                                    html += '</div>';
+                            }
+                            html += '</div>';
+                        }
+                        html += '</div>';
+                        $('.facetrack-image').append(html);
+
+                        $('#create-person-form').attr('style', 'display: none');
+
+                        matchfacetrack2person(task_id, facetrack_id);
+                    } else if(status == -2) {
+                        layer.msg('亲，任务紧张，请稍候刷新重试！', 
+                            {
+                                time: 10000,
+                                btn: ['明白了', '知道了'],
+                            },
+                            function() {
+                                location.replace('/usercenter/task');
+                            }
+                        );
+                    } else {
+                        layer.msg('亲，已经没有任务了哦！', 
+                            {
+                                time: 10000,
+                                btn: ['明白了', '知道了'],
+                            },
+                            function() {
+                                location.replace('/usercenter/task');
+                            }
+                        );
+                    }
+                },
+                "json"
+            );
+            layer.close(index); 
+        };
+
+        function matchfacetrack2person(task_id, facetrack_id) {
+            $.post(
+                '/usercenter/task/' + task_id + '/matchfacetrack2person',
+                {'facetrack_id': facetrack_id},
+                function(data) {
+                    var status = data['status'];
+                    if(status == 0) {
+                        $(".person-list").attr("facetrack-id", facetrack_id);
+
+                        var option_str ='<button type="button" class="btn btn-danger btn-sm addfacetrack2person">合并序列</button>'
+                            + '&nbsp;&nbsp;&nbsp;'
+                            + '<button type="button" class="btn btn-danger btn-sm createperson">创建人物</button>'
+                            + '&nbsp;&nbsp;&nbsp;'
+                            + '<button type="button" class="btn btn-danger btn-sm deletefacetrack">跳过序列</button>';
+                        $('.facetrack-option').html(option_str);
+
+                        html = '';
+                        var matches = data['data']['matches'];
+                        for(var i in matches) {
+                            if(i>=10) break;
+
+                            var images = matches[i]['images'];
+                            html += '<li class="list-group-item" style="border: 1px dashed #8c2020;">'
+                                + '<div class="row row-md-flex-center">'
+                                + '<div class="col-md-1"><input type="radio" name="matched_person" value="' + matches[i].id_person + '" /></div>'
+                                + '<div class="col-md-1">匹配分：' + matches[i].score.toFixed(2) + '<br/>相似度：' + matches[i].percent.toFixed(2) + '</div>'
+                                + '<div class="col-md-1">';
+                            if(images.length>0)
+                                html += '<img src="' + images[0] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>1)
+                                html += '<img src="' + images[1] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>2)
+                                html += '<img src="' + images[2] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>3)
+                                html += '<img src="' + images[3] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>4)
+                                html += '<img src="' + images[4] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>5)
+                                html += '<img src="' + images[5] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>6)
+                                html += '<img src="' + images[6] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>7)
+                                html += '<img src="' + images[7] +'" class="img-responsive">';
+                            html += '</div>'
+                                + '<div class="col-md-2"><a href="javascript:void(0);" person-id="' + matches[i].id +'" class="btn btn-success btn-sm">人物详情</a></div>'
+                                + '</div></li>';
+                        }
+                        $('.person-list').append(html);
+                    } else {
+                        layer.msg('亲，获取匹配信息失败，请刷新重试！');
+
+                        $.post(
+                            '/usercenter/task/' + task_id + '/deletefacetrack',
+                            {data: JSON.stringify({'facetrack_id': facetrack_id})},
+                            function(data) {
+                                var status = data["status"];
+                                if(status == 0) {
+                                    $('.facetrack-image').html('');
+                                    $('ul.person-list').html('');
+                                    $('ul.facetrack-list').html('');
+                                    getData();
+                                }
+                            }, "json"
+                        );
+                    }
+                },
+                "json"
+            );
+        }
+
+        function matchperson2facetrack(task_id, person_id) {
+            $.post(
+                '/usercenter/task/' + task_id + '/matchperson2facetrack',
+                {'person_id': person_id},
+                function(data) {
+                    var status = data['status'];
+                    if(status == 0) {
+                        $('#create-person-form').attr('style', 'display: none');
+                        $(".facetrack-list").attr("person_id", person_id);
+                        
+                        var option_str ='<button type="button" class="btn btn-danger btn-sm addfacetracks2person">合并序列</button>&nbsp; &nbsp;'
+                            + '<button type="button" class="btn btn-danger btn-sm getnextfacetrack">下一序列</button>';
+                        $('.facetrack-option').html(option_str);
+
+                        html = '';
+                        var matches = data['data']['matches'];
+                        for(var i in matches) {
+                            if(i>=10) break;
+
+                            var images = matches[i]['images'];
+                            html += '<li class="list-group-item" style="border: 1px dashed #8c2020;">'
+                                + '<div class="row row-md-flex-center">'
+                                + '<div class="col-md-1"><input type="checkbox" name="checkbox" value="' + matches[i].id_facetrack + '" /></div>'
+                                + '<div class="col-md-1">匹配分：' + matches[i].score.toFixed(2) + '<br/>相似度：' + matches[i].percent.toFixed(2) + '</div>'
+                                + '<div class="col-md-2"><img src="/' + matches[i].big_image + '" class="img-responsive"></div>'
+                                + '<div class="col-md-1">';
+                            if(images.length>0)
+                                html += '<img src="' + images[0] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>1)
+                                html += '<img src="' + images[1] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>2)
+                                html += '<img src="' + images[2] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>3)
+                                html += '<img src="' + images[3] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>4)
+                                html += '<img src="' + images[4] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>5)
+                                html += '<img src="' + images[5] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>6)
+                                html += '<img src="' + images[6] +'" class="img-responsive">';
+                            html += '</div><div class="col-md-1">';
+                            if(images.length>7)
+                                html += '<img src="' + images[7] +'" class="img-responsive">';
+                            html += '</div></div></li>';
+                        }
+                        $('.facetrack-list').append(html);
+                    } else {
+                        layer.msg('亲，获取人物匹配信息失败！');
+                    }
+                },
+                "json"
+            );
+        }
+
+        // add facetrack to person
+        $(".facetrack-option").on("click", ".addfacetrack2person", function() {
+            var person_id = $("input[name='matched_person']:checked").val();
+            var facetrack_id = $(".person-list").attr("facetrack_id");
+            var task_id = document.getElementById('box-title').attributes['data-index'].value;
+
+            if(person_id == null) {
+                layer.msg('亲，您没有选择合并的人物哦！');
+                return false;
+            }
+
+            $.post(
+                '/usercenter/task/' + task_id + '/addfacetrack2person',
+                {data: JSON.stringify({'person_id': person_id, 'facetrack_id': facetrack_id})},
+                function(data) {
+                    var status = data["status"];
+                    if(status == 0) {
+                        $('ul.person-list').html('');
+                        $('ul.facetrack-list').html('');
+                        matchperson2facetrack(task_id, person_id);
+                    } else if(status == -2) {
+                        layer.msg('亲，操作超时啦！');
+                    } else {
+                        alert("Failed!");
+                    }
+                }, "json"
+            );
+        });
+
+        // add facetrack to new person
+        $(".facetrack-add-person").on("click", ".addfacetrack2newperson", function() {
+            var facetrack_id = $(".person-list").attr("facetrack_id");
+            var name = $('#person-name').val();
+            var age = $('#person-age').val();
+            var gender = $("input[name='gender']:checked").val();
+            var task_id = document.getElementById('box-title').attributes['data-index'].value;
+
+            if(name == '') {
+                layer.msg('亲，姓名不能为空哦！');
+                return false;
+            }
+
+            $.post(
+                '/usercenter/task/' + task_id + '/addfacetrack2newperson',
+                {data: JSON.stringify({'facetrack_id': facetrack_id, 'name': name, 'age': age, 'gender': gender})},
+                function(data) {
+                    var status = data["status"];
+                    if(status == 0) {
+                        $('ul.person-list').html('');
+                        $('ul.facetrack-list').html('');
+                        matchperson2facetrack(task_id, data["data"]["person_id"]);
+                    } else if(status == -2) {
+                        layer.msg('亲，操作超时啦！');
+                    } else {
+                        alert("Failed!");
+                    }
+                }, "json"
+            );
+        });
+
+        // delete facetrack
+        $(".facetrack-option").on("click", ".deletefacetrack", function() {
+            var facetrack_id = $(".person-list").attr("facetrack_id");
+            var task_id = document.getElementById('box-title').attributes['data-index'].value;
+
+            $.post(
+                '/usercenter/task/' + task_id + '/deletefacetrack',
+                {data: JSON.stringify({'facetrack_id': facetrack_id})},
+                function(data) {
+                    var status = data["status"];
+                    if(status == 0) {
+                        $('.facetrack-image').html('');
+                        $('ul.person-list').html('');
+                        $('ul.facetrack-list').html('');
+                        getData();
+                    } else {
+                        alert("Failed!");
+                    }
+                }, "json"
+            );
+        });
+
+        // add facetracks to person
+        $(".facetrack-option").on("click", ".addfacetracks2person", function() {
+            var checkBoxes = document.getElementsByName('checkbox');
+            var task_id = document.getElementById('box-title').attributes['data-index'].value;
+            var person_id = $(".facetrack-list").attr("person_id");
+
+            var unitlist = [];
+            for(var i = 0 ; i < checkBoxes.length ; i++) {
+                unitlist[i] = {"id": checkBoxes[i].value, "status": 0};
+                if(checkBoxes[i].checked) {
+                    unitlist[i].status = 1;
+                } else {
+                    unitlist[i].status = 0;
+                }
+            }
+
+            $.post(
+                '/usercenter/task/' + task_id + '/addfacetracks2person',
+                {data: JSON.stringify({'person_id': person_id, 'matches': unitlist})},
+                function(data) {
+                    var status = data["status"];
+                    if(status == 0) {
+                        $('ul.facetrack-list').html('');
+                        matchperson2facetrack(task_id, person_id);
+                    } else if(status == -2) {
+                        layer.msg('亲，操作超时啦！');
+                    } else {
+                        alert("Failed!");
+                    }
+                }, "json"
+            );
+        });
+
+        // add facetracks to person
+        $(".facetrack-option").on("click", ".getnextfacetrack", function() {
+            $('.facetrack-image').html('');
+            $('ul.person-list').html('');
+            $('ul.facetrack-list').html('');
+            getData();
+        });
+    });
+</script>
+
+{% endblock %}

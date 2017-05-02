@@ -1,0 +1,339 @@
+html,body{
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: '微软雅黑';
+}
+.header{
+    width: 1200px;
+    margin: 0 auto;
+}
+.head{
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100px;
+    box-shadow: 0 0 5px #5972ff;
+}
+#canvas{
+    height: 99%;
+}
+#logo{
+    float: left;
+    width: 160px;
+    height: 100px;
+    background: url("../img/logo.png") no-repeat center;
+    background-size: 100%;
+}
+.home{
+    width: 110px;
+    height: 100px;
+    float: right;
+    line-height: 100px;
+    text-align: center;
+    background: url("../img/home.png") no-repeat left center;
+    cursor: pointer;
+
+}
+.info_content{
+    position: relative;
+}
+.user_image{
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+    position: absolute;
+    top: -80px;
+    left: 320px;
+}
+.api-sdk{
+    width: 140px;
+    height: 100px;
+    float: right;
+    line-height: 100px;
+    text-align: center;
+    background: url("../img/api.png") no-repeat left center;
+    cursor: pointer;
+
+}
+.personage{
+    width: 50px;
+    height: 100px;
+    float: right;
+    background: url("../img/timg小.png") no-repeat center;
+    cursor: pointer;
+
+}
+.main{
+    width: 1200px;
+    margin: 0 auto;
+    position: absolute;
+    top: 100px;
+    left: 0;
+    right: 0;
+}
+/*侧边栏？*/
+.sideBar{
+    float: left;
+    width: 220px;
+    margin: 48px 40px 0 0;
+    border: 1px solid #b5b5b5;
+    border-radius: 2px;
+    background: white;
+    box-shadow: 1px 1px 5px #b5b5b5;
+    position: relative;
+    padding: 0;
+    box-sizing: border-box;
+}
+.sideBar_head{
+    width: 100%;
+    height: 200px;
+    position: relative;
+    background: url("../img/bg.png") no-repeat center top;
+}
+.user_img{
+    width: 77px;
+    height: 77px;
+    border-radius: 77px;
+    background: #a3a3a3;
+    position: absolute;
+    top: 70px;
+    left: 70px;
+
+}
+.welcome{
+    position: absolute;
+    bottom: 20px;
+    font-size: 14px;
+    width: 100%;
+    color: #313131;
+    text-align: center;
+    margin: 0;
+}
+.api_option{
+    width: 80%;
+    margin: 0 10%;
+    border-top: 1px solid #a3a3a3;
+    font-size: 14px;
+    line-height: 34px;
+    cursor: pointer;
+}
+.api_menu{
+    width: 70%;
+    margin: 0 10%;
+    border-top: 1px solid #a3a3a3;
+    font-size: 14px;
+    padding: 10px 5%;
+    line-height: 30px;
+    cursor: pointer;
+}
+.private_menu{
+    width: 70%;
+    margin: 0 10%;
+    border-top: 1px solid #a3a3a3;
+    font-size: 14px;
+    padding:  10px 5%;
+    line-height: 30px;
+    cursor: pointer;
+}
+.private_option{
+    width: 80%;
+    margin: 0 10%;
+    border-top: 1px solid #a3a3a3;
+    font-size: 14px;
+    line-height: 34px;
+    cursor: pointer;
+}
+/*主体标题*/
+.title_api{
+    float: right;
+    width: 940px;
+    height: 65px;
+    margin: 48px 0;
+    border: 1px solid #5972ff;
+    line-height: 65px;
+    font-size: 18px;
+    box-sizing: border-box;
+    padding-left: 40px;
+    font-weight: 600;
+    background: white;
+}
+.title_ser{
+    float: right;
+    width: 940px;
+    height: 65px;
+    margin: 48px 0;
+    border: 1px solid #5972ff;
+    line-height: 65px;
+    font-size: 18px;
+    box-sizing: border-box;
+    padding-left: 40px;
+    font-weight: 600;
+    background: white;
+}
+.content{
+    float: right;
+    width: 940px;
+    min-height: 680px;
+    border: 1px solid #5972ff;
+    line-height: 30px;
+    font-size: 14px;
+    box-sizing: border-box;
+    padding: 0 40px;
+    background: white;
+}
+li{
+    list-style: none;
+}
+.api_content li{
+    border-bottom: 1px solid #5972ff;
+    position: relative;
+    overflow: hidden;
+}
+.api_content img{
+    margin: 20px;
+    width: 110px;
+    height: 110px;
+    background: #bdc7ff;
+    float: left;
+}
+ul{
+    padding: 0 0 30px 0;
+}
+.ser_content li{
+    border-bottom: 1px solid #5972ff;
+    position: relative;
+    overflow: hidden;
+}
+.ser_content img{
+    margin: 20px;
+    width: 110px;
+    height: 110px;
+    background: #bdc7ff;
+    float: left;
+}
+.api_til{
+    float: left;
+    margin-top: 20px;
+    font-size: 18px;
+}
+.api_font{
+    position: absolute;
+    top: 55px;
+    left: 150px;
+}
+.api_time{
+    position: absolute;
+    top: 87px;
+    left: 150px;
+}
+.api_btn{
+    position: absolute;
+    top: 55px;
+    right: 10px;
+    background: #5972ff;
+    width: 120px;
+    height: 40px;
+    font-size: 17px;
+    text-align: center;
+    line-height: 40px;
+    color: white;
+    border-radius: 2px;
+}
+
+
+.title_pri{
+    float: right;
+    width: 940px;
+    height: 100px;
+    margin: 48px 0 15px;
+    border: 1px solid #5972ff;
+    line-height: 65px;
+    font-size: 18px;
+    box-sizing: border-box;
+    padding-left: 40px;
+    font-weight: 600;
+    background: url("../img/bg.png") repeat-x center top;
+    position: relative;
+}
+.title_pri img{
+    width: 77px;
+    height: 77px;
+    border: 2px solid white;
+    position: absolute;
+    bottom: -60px;
+    background: white;
+    margin: 0 auto;
+    left: 0;
+    right:0;
+    border-radius: 77px;
+}
+.username{
+    margin-top: 40px;
+    text-align: center;
+    color: #5972ff;
+}
+
+.user_name{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+.user_email{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+.user_address{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+.user_phone{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+.user_info{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+input{
+    outline:none;
+    border: 1px solid #5972ff;
+    margin-left: 50px;
+    width: 280px;
+    height: 30px;
+}
+textarea{
+    overflow: hidden;
+    width: 330px;
+    height: 150px;
+    border: 1px solid #5972ff;
+    vertical-align: top;
+    margin-left: 50px;
+}
+.user_save{
+    display: block;
+    width: 60px;
+    height: 30px;
+    background: #5972ff;
+    color: whitesmoke;
+    border-radius: 2px;
+    margin: 30px 0 0 200px;
+}
+.psw_old{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+.psw_new{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+.psw_again{
+    margin-top: 40px;
+    margin-left: 200px;
+}
+
+.btn{
+    cursor: pointer;
+}
+.hide{
+    display: none;
+}

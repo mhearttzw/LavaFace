@@ -1,0 +1,125 @@
+{% extends "usercenter/base.html" %}
+
+{% load staticfiles %}
+
+{% block title %}<title>{{ site_info.site_name }}控制台</title>{% endblock %}
+{% block keywords %}<meta name="keywords" content="{{ site_info.site_keywords }}"/>{% endblock %}
+{% block description %}<meta name="description" content="{{ site_info.site_description }}"/>{% endblock %}
+
+{% block main %}
+
+<div class="content-wrapper">
+    <section class="content-header">
+    </section>
+
+    <section class="invoice">
+        <!-- title row -->
+        <div class="row">
+            <div class="col-xs-12">
+                <h2 class="page-header">
+                    <i class="fa fa-globe"></i> {{ site_info.site_name }}
+                    <small class="pull-right">今天是{{ time_now|date:"Y年m月d日" }}</small>
+                </h2>
+            </div>
+        </div>
+        
+        <!-- info row -->
+        <div class="row">
+            <div class="col-lg-3 col-xs-6">
+                <div class="small-box bg-aqua">
+                    <div class="inner">
+                        <h3>{{ stats.task_num }}</h3>
+                        <p>总任务数</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fa fa-home"></i>
+                    </div>
+                    <a href="/usercenter/task" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-3 col-xs-6">
+                <div class="small-box bg-yellow">
+                    <div class="inner">
+                        <h3>{{ stats.user_num }}</h3>
+                        <p>平台用户数</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-person-add"></i>
+                    </div>
+                    <a href="#" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-3 col-xs-6">
+                <div class="small-box bg-green">
+                    <div class="inner">
+                        <h3>{{ stats.facetrack_num }}</h3>
+                        <p>剩余任务量</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-stats-bars"></i>
+                    </div>
+                    <a href="/usercenter/task" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-3 col-xs-6">
+                <div class="small-box bg-red">
+                    <div class="inner">
+                        <h3>{{ stats.person_num }}</h3>
+                        <p>总人物数</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-pie-graph"></i>
+                    </div>
+                    <a href="#" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- chart row -->
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box-stats">
+                    <div class="box-header with-border">
+                    </div>
+                    <div class="box-body chart-responsive">
+                        <h5 class="text-center">最近20天工作量统计</h5>
+                        <div class="chart" id="line-chart" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Morris.js charts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+<script src="/static/djadmin/plugins/morris/morris.min.js"></script>
+
+<script>
+    $(function () {
+        "use strict";
+        showChart();
+    });
+
+    function showChart() {
+        var url = '/usercenter/statistics';
+        $.get(url, function(data, status){
+            if(data.status)
+                return false;
+            // LINE CHART
+            $('#line-chart').html('');
+            var line = new Morris.Line({
+                element: 'line-chart',
+                resize: true,
+                data: data.data.stats,
+                xkey: 'date',
+                ykeys: ['count'],
+                labels: ['完成量'],
+                lineColors: ['#3c8dbc'],
+                hideHover: 'auto'
+            });
+        });
+    };
+</script>
+
+{% endblock %}

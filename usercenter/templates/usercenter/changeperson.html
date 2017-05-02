@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+        <!-- Page Description -->
+        {%block title %} {% endblock %}
+        {%block keywords %} {% endblock %}
+        {%block description %} {% endblock %}
+
+        <meta name="author" content="{{ site_info.site_author }}"/>
+        <meta name="copyright" content="{{ site_info.site_copyright }}"/>
+        
+        <link rel="shortcut icon" href="/static/images/favicon.ico">
+
+        <!-- Bootstrap 3.3.6 -->
+        <link rel="stylesheet" href="/static/djadmin/bootstrap/css/bootstrap.min.css">
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
+        <!-- Ionicons -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
+        <!-- Theme style -->
+        <link rel="stylesheet" href="/static/djadmin/dist/css/AdminLTE.min.css">
+        <!-- AdminLTE Skins -->
+        <link rel="stylesheet" href="/static/djadmin/dist/css/skins/skin-blue.min.css">
+        <!-- Morris charts -->
+        <link rel="stylesheet" href="/static/djadmin/plugins/morris/morris.css">
+        <!-- Bootstrap Datepicker -->
+        <link rel="stylesheet" href="/static/djadmin/plugins/datepicker/datepicker3.css">
+        <!-- iCheck -->
+        <link rel="stylesheet" href="/static/djadmin/plugins/iCheck/flat/blue.css">
+
+        <!-- self-defined diadmin css -->
+        <link rel="stylesheet" href="/static/css/djadmin.css">
+
+        <!-- jQuery 2.2.3 -->
+        <script src="/static/djadmin/plugins/jQuery/jquery-2.2.3.min.js"></script>
+        <!-- bootstrap datepicker -->
+        <script src="/static/djadmin/plugins/datepicker/bootstrap-datepicker.js"></script>
+        <!-- iCheck -->
+        <script src="/static/djadmin/plugins/iCheck/icheck.min.js"></script>
+        <!-- Bootstrap 3.3.6 -->
+        <script src="/static/djadmin/bootstrap/js/bootstrap.min.js"></script>
+        <!-- AdminLTE App -->
+        <script src="/static/djadmin/dist/js/app.min.js"></script>
+        <!-- jQuery cookie plugins -->
+        <script src="/static/js/jquery/jquery.cookie.js"></script>
+        <!-- Layer -->
+        <script src="/static/js/layer/layer.js"></script>
+    </head>
+    <!--
+    BODY TAG OPTIONS:
+    =================
+    Apply one or more of the following classes to get the
+    desired effect
+    |---------------------------------------------------------|
+    | SKINS         | skin-blue                               |
+    |               | skin-black                              |
+    |               | skin-purple                             |
+    |               | skin-yellow                             |
+    |               | skin-red                                |
+    |               | skin-green                              |
+    |---------------------------------------------------------|
+    |LAYOUT OPTIONS | fixed                                   |
+    |               | layout-boxed                            |
+    |               | layout-top-nav                          |
+    |               | sidebar-collapse                        |
+    |               | sidebar-mini                            |
+    |---------------------------------------------------------|
+    -->
+    <body class="hold-transition skin-blue sidebar-mini">
+        <section class="content">
+            {% if messages %}
+                <div class="callout callout-info">
+                    <h4>提示：</h4>
+                    {% for message in messages %}
+                        <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="box box-solid">
+                <!-- /.box-alert -->
+                <div class="box-body">
+                    <form role="form" action="/usercenter/person/{{ person.id }}/change" method="post">
+                        {% csrf_token %}
+
+                        <!-- text input -->
+                        <div class="form-group">
+                            <label>编号</label>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <input type="text" class="form-control" name="id" placeholder="Enter ..." value="{{ person.pid }}" disabled="">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>姓名</label>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <input type="text" class="form-control" name="name" placeholder="Enter ..." value="{{ person.name }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>性别</label>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <input type="radio" name="gender" value="1"{% ifequal person.gender 1 %} checked{% endifequal %}> 男
+                                    <input type="radio" name="gender" value="0"{% ifequal person.gender 0 %} checked{% endifequal %}> 女
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>年龄</label>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <select class="form-control" name="age">
+                                        <option value="0" {% ifequal person.age 0 %}selected{% endifequal %}>年龄段不详</option>
+                                        <option value="1" {% ifequal person.age 1 %}selected{% endifequal %}>未成年(0-17周岁)</option>
+                                        <option value="2" {% ifequal person.age 2 %}selected{% endifequal %}>青年(18-39周岁)</option>
+                                        <option value="3" {% ifequal person.age 3 %}selected{% endifequal %}>中年(40-59周岁)</option>
+                                        <option value="4" {% ifequal person.age 4 %}selected{% endifequal %}>老年(60周岁以上)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>备注</label>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <textarea class="form-control" rows="3" name="remark" placeholder="Enter ...">{{ person.remark }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box-footer">
+                            <button type="submit" class="btn btn-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- /.box-body -->
+              </div>
+        </section>
+    </body>
+</html>
