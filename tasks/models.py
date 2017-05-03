@@ -105,8 +105,9 @@ class FaceTrack(models.Model):
 
 class FaceTrackImage(models.Model):
     img_base64 = models.TextField(u'图片数据')
-    file_name = models.CharField(u'文件名', max_length=200, blank=True)
+    img_id = models.CharField(u'图片id', max_length=100, blank=True)
     facetrack = models.ForeignKey(FaceTrack, verbose_name=u'人脸序列', on_delete=models.CASCADE)
+    isdeleted = models.IntegerField(u'是否删除', default=0)
     created_time = models.DateTimeField(u'创建时间', auto_now_add=True, null=True)
 
     class Meta:
