@@ -32,20 +32,16 @@ from django.shortcuts import render
 
 from django.template.defaulttags import register
 from django.utils.http import (base36_to_int, is_safe_url, urlsafe_base64_decode, urlsafe_base64_encode)
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from tasks.models import *
 
 def showImage(request):
     if request.method == 'GET':
-        image_type = request.GET.get('type')
         id = request.GET.get('id')
         fn = request.GET.get('fn')
 
         facetrack = FaceTrack.objects.get(facetrack_id=id)
         facetrack_image = FaceTrackImage.objects.get(facetrack_id=facetrack.id, img_id=fn)
         return HttpResponse(base64.decodestring(facetrack_image.img_base64), content_type='image/jpeg')
-    else:
-        print('Method not supported!')
 
