@@ -95,8 +95,8 @@ def main(request):
     stats['user_today_num'] = get_user_model().objects.filter(last_login__gte=date.today()).count()
     stats['facetrack_num'] = FaceTrack.objects.exclude(status = 2).count()
     stats['facetrack_total'] = FaceTrack.objects.filter(status = 2).count()
-    stats['person_today_num'] = Person.objects.filter(created_time__gte=date.today()).count()
-    stats['person_num'] = Person.objects.count()
+    stats['person_today_num'] = Person.objects.filter(created_time__gte=date.today(), isdeleted=0).count()
+    stats['person_num'] = Person.objects.filter(isdeleted=0).count()
 
     context = {'site_info': site_info, 
         'menu_list': menu_list,
@@ -602,31 +602,6 @@ def changePerson(request, person_id):
     return render(request, 'djadmin/changeperson.html', context)
 
 @staff_member_required(login_url='/djadmin/login')
-def deletePerson(request, person_id):
-    site_info = SiteInfo.objects.first()
-    menu_list = MenuInfo.objects.order_by('menu_order')
-    menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/person')
-
-    person = get_object_or_404(Person, id=person_id)
-    person.isdeleted = 1
-    payload = {
-        "id": 1,
-        "jsonrpc": "2.0",
-        "method": "deleteperson",
-        "params": {
-            "appkey": settings.DEEP_FACE_APP_KEY,
-   	    "id": person.pid
-        }
-    }
-    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-    if response['result']['code'] <> 0:
-        messages.add_message(request, messages.INFO, u'删除人物失败，请联系系统管理员！')
-    else:
-        person.save()
-        messages.add_message(request, messages.INFO, u'删除人物成功！')
-    return redirect('/djadmin/person')
-
-@staff_member_required(login_url='/djadmin/login')
 def viewPersonFacetrack(request, person_id):
     if len(person_id) >= 16:
         person = get_object_or_404(Person, pid=person_id)
@@ -634,42 +609,32 @@ def viewPersonFacetrack(request, person_id):
         person = get_object_or_404(Person, id=person_id)
 
     facetrack_list = FaceTrack.objects.filter(person_id=person.pid, isdeleted=0).order_by('-finished_time')
-
     paginator = Paginator(facetrack_list, 10)
     page = request.GET.get('page', 1)
     try:
         page = int(page)
         facetrack_matched = paginator.page(page)
         facetrack_new_object_list = []
-        for facetrack in facetrack_matched.object_list:
-            payload = {
-                "id": 1,
-                "jsonrpc": "2.0",
-                "method": "getfacetrackinfo",
-                "params": {
-                    "appkey": settings.DEEP_FACE_APP_KEY,
-                    "id": facetrack.facetrack_id
-                }
-            }
-
-            response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-            if response['result']['code'] == 0:
-                facetrack_src_id = response['result']['results']['src_id']
-                facetrack_imgs = response['result']['results']['imgs']
-                facetrack_tracking_time = facetrack.tracking_time
-                facetrack_finished_by = get_object_or_404(get_user_model(), id=facetrack.user_id).username
-                if facetrack_tracking_time is None:
-                    facetrack_tracking_time = '1970-01-01 00:00:00'
-                else:
-                    facetrack_tracking_time = facetrack.tracking_time.strftime("%Y-%m-%d %H:%M:%S")
-                facetrack_new_object_list.append({
-                    'facetrack_id': facetrack.facetrack_id,
-                    'big_image': facetrack.image_path,
-                    'src_id': facetrack.src_id,
-                    'finished_by': facetrack_finished_by,
-                    'facetrack_imgs': facetrack_imgs,
-                    'facetrack_createdate': facetrack_tracking_time
-                })
+        for facetrack_object in facetrack_matched.object_list:
+            facetrack_id = facetrack_object.facetrack_id
+            facetrack_image_path = facetrack_object.image_path
+            facetrack_src_id = facetrack_object.src_id
+            facetrack_tracking_time = facetrack_object.tracking_time
+            facetrack_imgs = facetrack_object.facetrackimage_set.filter(isdeleted=0)
+            facetrack_finished_by = get_object_or_404(get_user_model(), id=facetrack_object.user_id).username
+            if facetrack_tracking_time is None:
+                facetrack_tracking_time = '1970-01-01 00:00:00'
+            else:
+                facetrack_tracking_time = facetrack_object.tracking_time.strftime("%Y-%m-%d %H:%M:%S")
+            facetrack_new_object_list.append({
+                'facetrack_id': facetrack_id,
+                'big_image': facetrack_image_path,
+                'src_id': facetrack_src_id,
+                'finished_by': facetrack_finished_by,
+                'tracking_time': facetrack_tracking_time,
+                'facetrack_imgs': facetrack_imgs,
+                'facetrack_createdate': facetrack_tracking_time
+            })
         facetrack_matched.object_list = facetrack_new_object_list
     except PageNotAnInteger:
         facetrack_matched = paginator.page(1)
@@ -702,9 +667,13 @@ def deletePersonFacetrack(request, person_id):
     }
     response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
     if response['result']['code'] <> 0:
+        print(response)
         messages.add_message(request, messages.INFO, u'删除FaceTrack序列失败，请联系系统管理员！')
         return redirect(http_referer_url)
     else:
+        facetrack = FaceTrack.objects.get(facetrack_id=facetrack_id)
+        facetrack.isdeleted = 1
+        facetrack.save()
         messages.add_message(request, messages.INFO, u'删除FaceTrack序列成功！')
         return redirect(http_referer_url)
 
@@ -769,94 +738,10 @@ def matchPerson2Person(request, person_id):
                             'person_images': person_images
                         })
 
-    print(person_matched)
-
     context = {'page_range': page_range,
             'persons': person_matched,
             'query_num': len(person_list)}
     return render(request, 'djadmin/showsimilarperson.html', context)
-
-@staff_member_required(login_url='/djadmin/login')
-def addImage(request, person_id):
-    site_info = SiteInfo.objects.first()
-    menu_list = MenuInfo.objects.order_by('menu_order')
-    menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/person')
-
-    person = get_object_or_404(Person, id=person_id)
-    if request.method == 'POST':
-        if len(request.FILES):
-            image_blob = request.FILES['upload-image']
-            image_path = 'static/faces/person/%s.jpg' % str(uuid.uuid1())
-            with open(image_path, 'wb+') as destination:
-                for chunk in image_blob.chunks():
-                    destination.write(chunk)
-            base64_blob = base64.b64encode(open(image_path).read())
-
-            payload = {
-                "id": 1,
-                "jsonrpc": "2.0",
-                    "method": "cropface",
-                    "params": {
-                        "appkey": settings.DEEP_FACE_APP_KEY,
-                        "style": {"glasses": False, "glasses_id": 0, "hair": False, "hair_id": 0},
-   	                "img": base64_blob
-                    }
-            }
-            response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-            if response['result']['code'] <> 0:
-                messages.add_message(request, messages.INFO, u'人物图片处理失败，请联系系统管理员！')
-                return redirect('/djadmin/person/' + person_id + '/image')
-
-            base64_blob_new = response['result']['results']['img']
-            payload = {
-                "id": 1,
-                "jsonrpc": "2.0",
-                    "method": "addimgtoperson",
-                    "params": {
-                        "appkey": settings.DEEP_FACE_APP_KEY,
-                        "id_person": person.pid,
-   	                "img": base64_blob_new
-                    }
-            }
-            response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-            if response['result']['code'] <> 0:
-                messages.add_message(request, messages.INFO, u'人物图片添加失败，请联系系统管理员！')
-                return redirect('/djadmin/person/' + person_id + '/image')
-            else:
-                messages.add_message(request, messages.INFO, u'人物图片上传成功！')
-            return redirect('/djadmin/person/' + person_id + '/image')
-
-    context = {'site_info': site_info, 
-            'menu_list': menu_list,
-            'menu_now': menu_now,
-            'person': person}
-    return render(request, 'djadmin/addimage.html', context)
-
-@staff_member_required(login_url='/djadmin/login')
-def deleteImage(request, person_id):
-    site_info = SiteInfo.objects.first()
-    menu_list = MenuInfo.objects.order_by('menu_order')
-    menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/person')
-
-    person = get_object_or_404(Person, id=person_id)
-    imgpath = request.GET.get('img')
-    payload = {
-        "id": 1,
-        "jsonrpc": "2.0",
-        "method": "deletepersonimg",
-        "params": {
-            "appkey": settings.DEEP_FACE_APP_KEY,
-            "id": person.pid,
-            "img": imgpath
-        }
-    }
-    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-    if response['result']['code'] <> 0:
-        messages.add_message(request, messages.INFO, u'人物图片添加失败，请联系系统管理员！')
-        return redirect('/djadmin/person/' + person_id + '/image')
-    else:
-        messages.add_message(request, messages.INFO, u'删除图片记录成功！')
-        return redirect('/djadmin/person/' + person_id + '/image')
 
 @staff_member_required(login_url='/djadmin/login')
 def statistics(request):
