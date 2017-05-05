@@ -88,7 +88,7 @@
                             <span class="pull-right">
                                 <i class="fa fa-user"></i>&nbsp;{{ facetrack.finished_by }}
                                 &nbsp; &nbsp; &nbsp;
-                                <i class="fa fa-clock-o"></i>&nbsp;{{ facetrack.facetrack_createdate }}
+                                <i class="fa fa-clock-o"></i>&nbsp;{{ facetrack.tracking_time }}
                                 &nbsp; &nbsp; &nbsp;
                                 <a href="/djadmin/person/{{ person.id }}/facetrack/delete?facetrack_id={{ facetrack.facetrack_id }}" onclick="return confirm('确定要摘除该FaceTrack吗?')">
                                     <span class="glyphicon glyphicon-remove"></span>
@@ -104,7 +104,7 @@
                                 <div class="row">
                                     {% for image in facetrack.facetrack_imgs %}
                                         <div class="col-xs-3">
-                                            <img src="/image/?type=0&id={{ facetrack.facetrack_id }}&fn={{ image }}" alt="..." class="margin img-rounded img-responsive">
+                                            <img src="/image/?type=0&id={{ facetrack.facetrack_id }}&fn={{ image.img_id }}" alt="..." class="margin img-rounded img-responsive">
                                         </div>
                                     {% endfor %}
                                 </div>

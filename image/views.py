@@ -35,26 +35,17 @@ from django.utils.http import (base36_to_int, is_safe_url, urlsafe_base64_decode
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
+from tasks.models import *
+
 def showImage(request):
     if request.method == 'GET':
         image_type = request.GET.get('type')
         id = request.GET.get('id')
         fn = request.GET.get('fn')
 
-	payload = {
-	    "id": 1,
-            "jsonrpc": "2.0",
-	    "method": "getsingleimg",
-	    "params": {
-                "appkey": settings.DEEP_FACE_APP_KEY,
-                "type": int(image_type),
-                "id": id,
-                "path": fn
-	    }
-	}
-	response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-        if response['result']['code'] == 0:
-            return HttpResponse(base64.decodestring(response['result']['results']['img']), content_type='image/jpeg')
+        facetrack = FaceTrack.objects.get(facetrack_id=id)
+        facetrack_image = FaceTrackImage.objects.get(facetrack_id=facetrack.id, img_id=fn)
+        return HttpResponse(base64.decodestring(facetrack_image.img_base64), content_type='image/jpeg')
     else:
         print('Method not supported!')
 

@@ -699,71 +699,43 @@ def viewPersonFacetrack(request, person_id):
     else:
         person = get_object_or_404(Person, id=person_id)
 
-    payload = {
-        "id": 1,
-        "jsonrpc": "2.0",
-        "method": "getpersonrelatedfacetracks",
-        "params": {
-            "appkey": settings.DEEP_FACE_APP_KEY,
-   	    "id": person.pid
-        }
-    }
-    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-    if response['result']['code'] <> 0:
-        messages.add_message(request, messages.INFO, u'获取人物信息失败，请联系系统管理员！')
+    facetrack_list = FaceTrack.objects.filter(person_id=person.pid, isdeleted=0).order_by('-finished_time')
+    paginator = Paginator(facetrack_list, 10)
+    page = request.GET.get('page', 1)
+    try:
+        page = int(page)
+        facetrack_matched = paginator.page(page)
+        facetrack_new_object_list = []
+        for facetrack_object in facetrack_matched.object_list:
+            facetrack_id = facetrack_object.facetrack_id
+            facetrack_image_path = facetrack_object.image_path
+            facetrack_src_id = facetrack_object.src_id
+            facetrack_tracking_time = facetrack_object.tracking_time
+            facetrack_imgs = facetrack_object.facetrackimage_set.filter(isdeleted=0)
+            facetrack_finished_by = get_object_or_404(get_user_model(), id=facetrack_object.user_id).username
+            if facetrack_tracking_time is None:
+                facetrack_tracking_time = '1970-01-01 00:00:00'
+            else:
+                facetrack_tracking_time = facetrack_object.tracking_time.strftime("%Y-%m-%d %H:%M:%S")
+            facetrack_new_object_list.append({
+                'facetrack_id': facetrack_id,
+                'big_image': facetrack_image_path,
+                'src_id': facetrack_src_id,
+                'finished_by': facetrack_finished_by,
+                'tracking_time': facetrack_tracking_time,
+                'facetrack_imgs': facetrack_imgs,
+                'facetrack_createdate': facetrack_tracking_time
+            })
+        facetrack_matched.object_list = facetrack_new_object_list
+    except PageNotAnInteger:
+        facetrack_matched = paginator.page(1)
+    except EmptyPage:
+        facetrack_matched = []
+
+    if page >= 5:
+        page_range = list(paginator.page_range)[page-5: page+4]
     else:
-        if response['result']['results'] <> None:
-            facetrack_list = response['result']['results']
-        else:
-            facetrack_list = []
-
-        paginator = Paginator(facetrack_list, 10)
-        page = request.GET.get('page', 1)
-        try:
-            page = int(page)
-            facetrack_matched = paginator.page(page)
-            facetrack_new_object_list = []
-            for facetrack_object in facetrack_matched.object_list:
-                facetrack_id = facetrack_object['id_facetrack']
-                facetrack = FaceTrack.objects.get(facetrack_id=facetrack_id)
-                payload = {
-                    "id": 1,
-                    "jsonrpc": "2.0",
-                    "method": "getfacetrackinfo",
-                    "params": {
-                        "appkey": settings.DEEP_FACE_APP_KEY,
-   	                "id": facetrack_id
-                    }
-                }
-
-                response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-                if response['result']['code'] == 0:
-                    facetrack_src_id = response['result']['results']['src_id']
-                    facetrack_imgs = response['result']['results']['imgs']
-                    facetrack_tracking_time = facetrack.tracking_time
-                    facetrack_finished_by = get_object_or_404(get_user_model(), id=facetrack.user_id).username
-                    if facetrack_tracking_time is None:
-                        facetrack_tracking_time = '1970-01-01 00:00:00'
-                    else:
-                        facetrack_tracking_time = facetrack.tracking_time.strftime("%Y-%m-%d %H:%M:%S")
-                    facetrack_new_object_list.append({
-                        'facetrack_id': facetrack_id,
-                        'big_image': facetrack.image_path,
-                        'src_id': facetrack.src_id,
-                        'finished_by': facetrack_finished_by,
-                        'facetrack_imgs': facetrack_imgs,
-                        'facetrack_createdate': facetrack_tracking_time
-                    })
-            facetrack_matched.object_list = facetrack_new_object_list
-        except PageNotAnInteger:
-            facetrack_matched = paginator.page(1)
-        except EmptyPage:
-            facetrack_matched = []
-
-        if page >= 5:
-            page_range = list(paginator.page_range)[page-5: page+4]
-        else:
-            page_range = list(paginator.page_range)[0: page+4]
+        page_range = list(paginator.page_range)[0: page+4]
 
     context = {'page_range': page_range,
             'person': person,
@@ -788,6 +760,9 @@ def deletePersonFacetrack(request, person_id):
         messages.add_message(request, messages.INFO, u'删除FaceTrack序列失败，请联系系统管理员！')
         return redirect('/usercenter/person/' + person_id + '/facetrack')
     else:
+        facetrack = FaceTrack.objects.get(facetrack_id=facetrack_id)
+        facetrack.isdeleted = 1
+        facetrack.save()
         messages.add_message(request, messages.INFO, u'删除FaceTrack序列成功！')
         return redirect('/usercenter/person/' + person_id + '/facetrack')
 
