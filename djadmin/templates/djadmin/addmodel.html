@@ -42,52 +42,39 @@
             </div>
             <!-- /.box-alert -->
             <div class="box-body">
-                <form role="form" action="/djadmin/task/add" method="post">
+                <form role="form" action="/djadmin/model/add" method="post">
                     {% csrf_token %}
 
                     <!-- text input -->
                     <div class="form-group">
-                        <label>任务名称</label>
+                        <label>模型名称</label>
                         <div class="row">
                             <div class="col-xs-4">
-                                <input type="text" class="form-control" name="name" placeholder="人脸Facetrack数据(2016-01-01 00:00:00-2016-01-01 07:59:59)">
+                                <input type="text" class="form-control" name="name" placeholder="Model Name">
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>关键字</label>
+                        <label>模型URL</label>
                         <div class="row">
                             <div class="col-xs-4">
-                                <input type="text" class="form-control" name="keywords" placeholder="人脸、Facetrack、合并">
+                                <input type="text" class="form-control" name="url" placeholder="http://192.168.1.*:8000" value="http://192.168.1.*:8000">
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>是否截取图片人脸</label>
+                        <label>appkey</label>
                         <div class="row">
                             <div class="col-xs-4">
-                                <input type="radio" name="flag" value="1" checked=""> 是
-                                <input type="radio" name="flag" value="0"> 否
+                                <input type="text" class="form-control" name="key" placeholder="App key">
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>DeepFace模型</label>
+                        <label>模型headers</label>
                         <div class="row">
                             <div class="col-xs-4">
-                                <select class="form-control" name="model">
-                                    {% for model in model_list %}
-										<option value="{{ model.id }}">{{ model.model_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>任务描述</label>
-                        <div class="row">
-                            <div class="col-xs-4">
-                                <textarea class="form-control" rows="3" name="description" placeholder="人脸facetrack数据的合并处理"></textarea>
+								<textarea class="form-control" rows="3" name="headers">{'content-type': 'application/json'}</textarea>
                             </div>
                         </div>
                     </div>

@@ -96,14 +96,22 @@
                                 <td>
                                     {% if task.task_status.id == 1 %}
                                         <a href="/djadmin/task/{{ task.id }}/upload">上传数据</a>
+									{% elif task.task_status.id == 3 %}
+										<a href="/djadmin/task/{{ task.id }}/assign">分配用户</a>
+										&nbsp;
+										<a href="/djadmin/task/{{ task.id }}/release" onclick="return confirm('确定要发布该任务？')">发布任务</a>
                                     {% elif task.task_status.id == 4 %}
-                                        <a class="btn btn-success btn-sm" href="/djadmin/task/{{ task.id }}/detail">任务概况</a>
+										<a class="btn btn-success btn-xs" href="/djadmin/task/{{ task.id }}/assign">分配用户</a>
+										&nbsp;
+                                        <a class="btn btn-success btn-xs" href="/djadmin/task/{{ task.id }}/detail">任务概况</a>
                                         &nbsp;
-                                        <a class="btn btn-success btn-sm" href="/djadmin/task/{{ task.id }}/view">实时查看</a>
+                                        <a class="btn btn-success btn-xs" href="/djadmin/task/{{ task.id }}/view">实时查看</a>
                                     {% elif task.task_status.id == 5 %}
-                                        <a class="btn btn-success btn-sm" href="/djadmin/task/{{ task.id }}/detail">任务概况</a>
+										<a class="btn btn-success btn-xs" href="/djadmin/task/{{ task.id }}/assign">分配用户</a>
+										&nbsp;
+                                        <a class="btn btn-success btn-xs" href="/djadmin/task/{{ task.id }}/detail">任务概况</a>
                                         &nbsp;
-                                        <a class="btn btn-success btn-sm" href="/djadmin/task/{{ task.id }}/view">任务详情</a>
+                                        <a class="btn btn-success btn-xs" href="/djadmin/task/{{ task.id }}/view">任务详情</a>
                                     {% else %}
                                         <a href="#"></a>
                                     {% endif %}
