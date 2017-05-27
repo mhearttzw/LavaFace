@@ -118,7 +118,7 @@
                 <ul class="pagination no-margin">
                     <li>
                         {% if facetracks.has_previous %}
-                            <a href="/usercenter/person/{{ person.id }}/image?page={{ facetracks.previous_page_number }}" aria-label="Previous">
+                            <a href="/usercenter/person/{{ person.pid }}/facetrack?page={{ facetracks.previous_page_number }}" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         {% endif %}
@@ -131,7 +131,7 @@
                             </li>
                         {% else %}
                             <li>
-                                <a href="/usercenter/person/{{ person.id }}/image?page={{ page_num }}"">
+                                <a href="/usercenter/person/{{ person.pid }}/facetrack?page={{ page_num }}"">
                                     <span>{{ page_num }}</span>
                                 </a>
                             </li>
@@ -140,7 +140,7 @@
 
                     <li>
                         {% if facetracks.has_next %}
-                            <a href="/usercenter/person/{{ person.id }}/image?page={{ facetracks.next_page_number }}" aria-label="Next">
+                            <a href="/usercenter/person/{{ person.pid }}/facetrack?page={{ facetracks.next_page_number }}" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         {% endif %}

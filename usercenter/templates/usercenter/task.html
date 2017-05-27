@@ -92,7 +92,7 @@
                                 <td>{{ task.format_time }}</td>
                                 <td>
                                     {% if task.task_status.id == 4 %}
-                                        <a class="btn btn-success btn-sm" href="/usercenter/task/{{ task.id }}/proc">开始处理</a>
+                                        <a class="btn btn-success btn-xs" href="/usercenter/task/{{ task.id }}/proc">开始处理</a>
                                     {% else %}
                                         <a href="#"></a>
                                     {% endif %}

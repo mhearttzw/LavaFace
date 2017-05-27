@@ -185,9 +185,14 @@
                         for(var i in items) {
                             var images = items[i]['images'];
                             html += '<div class="facetrack-big-image col-sm-3 col-sm-offset-2">'
-                                + '<div><img class="img-responsive" src="/' + items[i]['big_image'] + '" alt="Photo"></div>'
-                                + '<div class="text-center">' + items[i]['tracking_time'] + '</div>'
-                                + '</div>';
+                                + '<div><img class="img-responsive" src="/' + items[i]['big_image'] + '"></div>';
+							if (items[i]['tracking_time'] != '1970-01-01 00:00:00')
+								html += '<div class="text-center">' + items[i]['tracking_time'] + '</div>';
+							if (items[i]['remark']) {
+								var remark_data = JSON.parse(items[i]['remark']);
+								html += '<div class="text-center">Born in <strong>' + remark_data['birthday'].substr(0, 4) + '</strong>, ' + remark_data['height'] + 'cm</div>';
+							}
+                            html += '</div>';
                             html += '<div class="col-sm-5">';
                             for (var j=0; j<images.length; ++j) {
                                 if(j % 4 == 0)
@@ -206,6 +211,16 @@
                         matchfacetrack2person(task_id, facetrack_id);
                     } else if(status == -2) {
                         layer.msg('亲，任务紧张，请稍候刷新重试！', 
+                            {
+                                time: 10000,
+                                btn: ['明白了', '知道了'],
+                            },
+                            function() {
+                                location.replace('/usercenter/task');
+                            }
+                        );
+                    } else if(status == -3) {
+                        layer.msg('亲，您的权限不够！', 
                             {
                                 time: 10000,
                                 btn: ['明白了', '知道了'],
@@ -242,8 +257,10 @@
 
                         var option_str ='<button type="button" class="btn btn-danger btn-sm addfacetrack2person">合并序列</button>'
                             + '&nbsp;&nbsp;&nbsp;'
+							/*
                             + '<button type="button" class="btn btn-danger btn-sm createperson">创建人物</button>'
                             + '&nbsp;&nbsp;&nbsp;'
+							*/
                             + '<button type="button" class="btn btn-danger btn-sm deletefacetrack">跳过序列</button>';
                         $('.facetrack-option').html(option_str);
 
