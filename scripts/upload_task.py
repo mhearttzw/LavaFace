@@ -24,10 +24,6 @@ MYSQL_USER = 'root'
 MYSQL_PASSWORD = 'yunshitu1!'
 MYSQL_DB = 'LavaFace'
 
-DEEP_FACE_URL = 'http://192.168.1.145:8000'
-DEEP_FACE_HEADERS = {'content-type': 'application/json'}
-DEEP_FACE_APP_KEY = '273fbf7a_e1a2_47d3_a2ed_d02d14d27569'
-
 GLOBAL_PATH = '/data/niuxl/lavaFace'
 
 class DiyMysql(object):
@@ -116,8 +112,13 @@ def main():
             time.sleep(3)
             continue
 
-        diyMySQL.query("SELECT id, data_path, task_flag FROM LavaFace.task_info WHERE task_status_id = 2")
+        diyMySQL.query("SELECT ti.id, data_path, task_flag, model_url, model_key, model_headers FROM task_info ti, deepface_model dm WHERE ti.task_model_id = dm.id AND task_status_id = 2")
         for record in diyMySQL.fetchAll():
+            task_id = record[0]
+            model_url = record[3]
+            model_key = record[4]
+            model_headers = record[5]
+
             task_path = GLOBAL_PATH + record[1]
             json_data = json.loads(open(task_path).read())
             for facetrack in json_data["facetracks"]:
@@ -132,23 +133,23 @@ def main():
                     "jsonrpc": "2.0",
                     "method": "createfacetrack",
                     "params": {
-                        "appkey": DEEP_FACE_APP_KEY,
+                        "appkey": model_key,
                         "imgs": imgs
                     }
                 }
 
-                response = requests.post(DEEP_FACE_URL, data=json.dumps(payload), headers=DEEP_FACE_HEADERS).json()
+                response = requests.post(model_url, data=json.dumps(payload), headers=json.loads(model_headers)).json()
                 if response['result']['code'] == 0:
                     affected_rows = diyMySQL.query(
-                        'INSERT INTO facetrack(`facetrack_id`, `image_path`, `descriptor`, `tracking_time`, `src_id`, `image_num`, `task_id`, `created_time`, `isdeleted`, `person_id`) ' \
-                        'VALUES(%s, %s, %s, %s, %s, %s, %s, now(), 0, '')', 
+                        "INSERT INTO facetrack(`facetrack_id`, `image_path`, `descriptor`, `tracking_time`, `src_id`, `image_num`, `task_id`, `created_time`, `isdeleted`, `isnewlycreated`, `person_id`) " \
+                        "VALUES(%s, %s, %s, %s, %s, %s, %s, now(), 0, 0, '')", 
                         (response['result']['results']['id_facetrack'],
                         facetrack['big_image'],
                         facetrack['descriptor'],
                         facetrack['tracking_time'],
                         facetrack['src_id'],
                         len(imgs),
-                        record[0])
+                        task_id)
                     )
 
                     affected_rows = diyMySQL.query('SELECT last_insert_id()')
@@ -161,13 +162,12 @@ def main():
                             'VALUES(%s, %s, %s, now(), 0)', 
                             (last_insert_id,
                             img,
-                            str(uuid.uuid1()),
-                            record[0])
+                            str(uuid.uuid1()))
                         )
 
                     diyMySQL.commit()
 
-            affected_rows = diyMySQL.query("UPDATE task_info SET task_status_id = 4 WHERE id = %s", [record[0]])
+            affected_rows = diyMySQL.query("UPDATE task_info SET task_status_id = 3 WHERE id = %s", [task_id])
             diyMySQL.commit()
 
         diyMySQL.close()
