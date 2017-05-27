@@ -96,7 +96,7 @@ def main(request):
     stats['task_num'] = TaskInfo.objects.filter(task_status_id__gte=4).count()
     stats['user_num'] = get_user_model().objects.count()
     stats['facetrack_num'] = FaceTrack.objects.exclude(status = 2).count()
-    stats['person_num'] = Person.objects.count()
+    stats['person_num'] = Person.objects.filter(isdeleted = 0).count()
 
     context = {'site_info': site_info, 
         'menu_list': menu_list,
@@ -162,7 +162,7 @@ def task(request):
     menu_list = Menu.objects.order_by('order')
     menu_now = get_object_or_404(Menu, link='/usercenter/task')
 
-    task_list = TaskInfo.objects.filter(task_status_id__gte = 4).order_by('-created_time')
+    task_list = TaskInfo.objects.filter(task_status_id__gte = 4, taskassign__user_id = request.user.id).order_by('-created_time')
     keyword = request.GET.get('q')
     if keyword and len(keyword):
         task_list = task_list.filter(task_name__contains=keyword.encode('utf-8'))
@@ -205,19 +205,25 @@ def processTask(request, task_id):
 
 @csrf_exempt
 def allocateTask(request, task_id):
+    context = {}
+    context['status'] = 0
+    context['message'] = 'success'
+
+    if not TaskAssign.objects.filter(user = request.user, task_id = task_id).exists():
+        context['status'] = -3
+        context['message'] = u'权限不够！'
+        return HttpResponse(json.dumps(context), content_type="application/json")
+
     facetracks_total = FaceTrack.objects.filter(task=TaskInfo.objects.get(pk=task_id)).count()
     facetracks_left = facetracks_total - FaceTrack.objects.filter(task=TaskInfo.objects.get(pk=task_id), status=2).count()
     facetracks_mine = FaceTrack.objects.filter(user_id=request.user.id, task=TaskInfo.objects.get(pk=task_id), status=2).count()
     facetracks_mine_deleted = FaceTrack.objects.filter(user_id=request.user.id, task=TaskInfo.objects.get(pk=task_id), status=2, isdeleted=1).count()
 
-    context = {}
-    context['status'] = 0
-    context['message'] = 'success'
     context['data'] = {'total': facetracks_total, 'left': facetracks_left, 'mine': facetracks_mine, 'deleted': facetracks_mine_deleted, 'items': []}
 
     facetracks = FaceTrack.objects.filter(user_id=request.user.id, task=TaskInfo.objects.get(pk=task_id), status=1)
     if not len(facetracks):
-        query = 'UPDATE facetrack SET user_id = '+ str(request.user.id) + ', status = 1, allocated_time = now() WHERE user_id is null and task_id = ' + str(task_id) + ' ORDER BY image_num DESC LIMIT 1'
+        query = 'UPDATE facetrack SET user_id = '+ str(request.user.id) + ', status = 1, allocated_time = now() WHERE user_id is null and task_id = ' + str(task_id) + ' LIMIT 1'
         with connection.cursor() as cursor:
             affetcted_rows = cursor.execute(query)
         facetracks = FaceTrack.objects.filter(user_id=request.user.id, task=TaskInfo.objects.get(pk=task_id), status=1)
@@ -238,22 +244,10 @@ def allocateTask(request, task_id):
         for facetrack in facetracks:
             ''' 获取图片信息 '''
             images = []
-	    payload = {
-		"id": 1,
-		"jsonrpc": "2.0",
-		"method": "getfacetrackinfo",
-		"params": {
-		    "appkey": settings.DEEP_FACE_APP_KEY,
-		    "id": facetrack.facetrack_id
-		}
-	    }
-	    response = json.loads(requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).text.replace('.,', ','))
-	    if response['result']['code'] == 0:
-                for image in response['result']['results']['imgs']:
-                    url = '/image/?type=0&id=' + facetrack.facetrack_id + '&fn=' + image
-                    images.append(url)
-            else:
-                print(response)
+            facetrack_images = facetrack.facetrackimage_set.filter(isdeleted = 0)
+            for image in facetrack_images:
+                url = '/image/?type=0&id=' + facetrack.facetrack_id + '&fn=' + image.img_id
+                images.append(url)
 
             ''' 匹配结果返回 '''
             facetrack_tracking_time = facetrack.tracking_time
@@ -267,6 +261,7 @@ def allocateTask(request, task_id):
                     'big_image': facetrack.image_path,
                     'tracking_time': facetrack_tracking_time,
                     'src_id': facetrack.src_id,
+                    'remark': facetrack.remark,
                     'images': images
                 }
             )
@@ -281,6 +276,8 @@ def matchFacetrack2Person(request, task_id):
 
     if request.method == 'POST':
         facetrack_id = request.POST.get('facetrack_id')
+
+        task = TaskInfo.objects.get(id = task_id)
         person_matches = None
 
 	payload = {
@@ -288,13 +285,12 @@ def matchFacetrack2Person(request, task_id):
             "jsonrpc": "2.0",
 	    "method": "matchfacetrack2person",
 	    "params": {
-                "appkey": settings.DEEP_FACE_APP_KEY,
+                "appkey": task.task_model.model_key,
                 "id": facetrack_id,
                 "src_ids": []
 	    }
 	}
-	response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-        print(response)
+	response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
         if response['result']['code'] == 0:
             transaction_id = response['result']['results']['transId']
 
@@ -305,19 +301,18 @@ def matchFacetrack2Person(request, task_id):
                     "jsonrpc": "2.0",
 	            "method": "getmatchfacetrackresult",
 	            "params": {
-                        "appkey": settings.DEEP_FACE_APP_KEY,
+                        "appkey": task.task_model.model_key,
                         "id_facetrack": facetrack_id,
                         "id_trans": transaction_id
 	            }
 	        }
 
-	        response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+	        response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
 	        if response['result']['results']['count'] == -1:
                     continue
                 else:
                     break
 
-            print(response)
 	    if response['result']['code'] == 0:
                 if response['result']['results']['count'] <> 0:
                     person_matches = response['result']['results']['matchs']
@@ -330,11 +325,11 @@ def matchFacetrack2Person(request, task_id):
                         "jsonrpc": "2.0",
 	                "method": "getpersoninfo",
 	                "params": {
-	                    "appkey": settings.DEEP_FACE_APP_KEY,
+	                    "appkey": task.task_model.model_key,
 	                    "id": person_match['id_person']
 	                }
 	            }
-	            response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+	            response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
                     if response['result']['code'] == 0:
                         person_match['images'] = []
                         for img in response['result']['results']['imgs']:
@@ -364,17 +359,19 @@ def matchPerson2Facetrack(request, task_id):
     if request.method == 'POST':
         person_id = request.POST.get('person_id')
 
+        task = TaskInfo.objects.get(id = task_id)
+
 	payload = {
 	    "id": 1,
             "jsonrpc": "2.0",
 	    "method": "matchperson2facetrack",
 	    "params": {
-                "appkey": settings.DEEP_FACE_APP_KEY,
+                "appkey": task.task_model.model_key,
                 "id": person_id,
                 "src_ids": []
 	    }
 	}
-	response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+	response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
         transaction_id = response['result']['results']['transId']
 
         while True:
@@ -384,12 +381,12 @@ def matchPerson2Facetrack(request, task_id):
                 "jsonrpc": "2.0",
 	        "method": "getmatchpersonresult",
 	        "params": {
-                    "appkey": settings.DEEP_FACE_APP_KEY,
+                    "appkey": task.task_model.model_key,
                     "id_person": person_id,
                     "id_trans": transaction_id
 	        }
 	    }
-	    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+	    response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
 	    if response['result']['results']['count'] == -1:
                 continue
             else:
@@ -404,21 +401,12 @@ def matchPerson2Facetrack(request, task_id):
                     continue
 
                 facetrack_match['big_image'] = facetrack.image_path
-	        payload = {
-	            "id": 1,
-                    "jsonrpc": "2.0",
-	            "method": "getfacetrackinfo",
-		    "params": {
-		        "appkey": settings.DEEP_FACE_APP_KEY,
-		        "id": facetrack_match['id_facetrack']
-		    }
-	        }
-	        response = json.loads(requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).text.replace('.,', ','))
-                if response['result']['code'] == 0:
-                    facetrack_match['images'] = []
-                    for img in response['result']['results']['imgs']:
-                        url = '/image/?type=0&id=' + facetrack_match['id_facetrack'] + '&fn=' + img
-                        facetrack_match['images'].append(url)
+
+                facetrack_match['images'] = []
+                facetrack_images = facetrack.facetrackimage_set.all()
+                for image in facetrack_images:
+                    url = '/image/?type=0&id=' + facetrack.facetrack_id + '&fn=' + image.img_id
+                    facetrack_match['images'].append(url)
 
                 facetrack_matches.append(facetrack_match)
                 
@@ -437,18 +425,19 @@ def addFacetrack2Person(request, task_id):
     context = {}
     if request.method == 'POST':
         data = json.loads(request.POST.get('data'))
+        task = TaskInfo.objects.get(id = task_id)
 
 	payload = {
 	    "id": 1,
 	    "jsonrpc": "2.0",
 	    "method": "addfacetracktoperson",
 	    "params": {
-	        "appkey": settings.DEEP_FACE_APP_KEY,
+	        "appkey": task.task_model.model_key,
 	        "id_facetrack": data['facetrack_id'],
                 "id_person": data['person_id']
 	    }
 	}
-	response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+	response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
         if response['result']['code'] <> 0:
             context['status'] = 0
             context['message'] = u'添加FaceTrack到Person失败, 请联系系统管理员！'
@@ -478,19 +467,20 @@ def addFacetrack2NewPerson(request, task_id):
     if request.method == 'POST':
         data = json.loads(request.POST.get('data'))
         pid = str(uuid.uuid1())
+        task = TaskInfo.objects.get(id = task_id)
 
-        person = Person(pid=pid, name=data['name'], gender=data['gender'], age=data['age'])
+        person = Person(pid=pid, model_id=task.task_model_id, name=data['name'], gender=data['gender'], age=data['age'])
         payload = {
             "id": 1,
             "jsonrpc": "2.0",
             "method": "createperson_id",
             "params": {
-                "appkey": settings.DEEP_FACE_APP_KEY,
+                "appkey": task.task_model.model_key,
                 "id": pid,
                 "info": {"sex": int(data['gender'])}
             }
         }
-        response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+        response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
         if response['result']['code'] <> 0:
             messages.add_message(request, messages.INFO, u'创建人物失败，请联系系统管理员！')
         else:
@@ -501,12 +491,12 @@ def addFacetrack2NewPerson(request, task_id):
 	    "jsonrpc": "2.0",
 	    "method": "addfacetracktoperson",
 	    "params": {
-	        "appkey": settings.DEEP_FACE_APP_KEY,
+	        "appkey": task.task_model.model_key,
 	        "id_facetrack": data['facetrack_id'],
                 "id_person": pid
 	    }
 	}
-	response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+	response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
         if response['result']['code'] <> 0:
             context['status'] = 0
             context['message'] = u'添加FaceTrack到Person失败, 请联系系统管理员！'
@@ -520,6 +510,7 @@ def addFacetrack2NewPerson(request, task_id):
                 facetrack.person_id = pid
                 facetrack.allocated_time = datetime.now()
                 facetrack.finished_time = datetime.now()
+                facetrack.isnewlycreated = 1
                 facetrack.save()
                 context['data'] = {}
                 context['data']['person_id'] = pid
@@ -533,25 +524,14 @@ def deleteFacetrackImg(request, task_id):
     context = {}
     if request.method == 'POST':
         data = json.loads(request.POST.get('data'))
-	imgpath = data['imgurl'][data['imgurl'].find('fn=')+3:]
+	imgid = data['imgurl'][data['imgurl'].find('fn=')+3:]
 
-        payload = {
-            "id": 1,
-            "jsonrpc": "2.0",
-            "method": "deletefacetrackimg",
-            "params": {
-                "appkey": settings.DEEP_FACE_APP_KEY,
-                "id": data['facetrack_id'],
-                "img": imgpath
-            }
-        }
-        response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-        if response['result']['code'] <> 0:
-            context['status'] = -1
-            context['message'] = '删除图片失败，请联系系统管理员！'
-        else:
-            context['status'] = 0
-            context['message'] = 'success'
+        facetrack_image = FaceTrackImage.objects.get(img_id = imgid)
+        facetrack_image.isdeleted = 1
+        facetrack_image.save()
+
+        context['status'] = 0
+        context['message'] = u'删除图片成功！'
     else:
         context['status'] = -1
         context['message'] = u'请求无效'
@@ -562,17 +542,18 @@ def deleteFacetrack(request, task_id):
     context = {}
     if request.method == 'POST':
         data = json.loads(request.POST.get('data'))
+        task = TaskInfo.objects.get(id = task_id)
 
         payload = {
             "id": 1,
             "jsonrpc": "2.0",
             "method": "deletefacetrack",
             "params": {
-                "appkey": settings.DEEP_FACE_APP_KEY,
+                "appkey": task.task_model.model_key,
                 "id": data['facetrack_id']
             }
         }
-        response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+        response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
         if response['result']['code'] <> 0:
             facetrack = FaceTrack.objects.get(facetrack_id=data["facetrack_id"])
             facetrack.status = 2
@@ -602,6 +583,8 @@ def addFacetracks2Person(request, task_id):
 
     if request.method == 'POST':
         data = json.loads(request.POST.get('data'))
+        task = TaskInfo.objects.get(id = task_id)
+
         for record in data['matches']:
             if record['status'] == 1:
 	        payload = {
@@ -609,12 +592,12 @@ def addFacetracks2Person(request, task_id):
 	            "jsonrpc": "2.0",
 	            "method": "addfacetracktoperson",
 	            "params": {
-	                "appkey": settings.DEEP_FACE_APP_KEY,
+	                "appkey": task.task_model.model_key,
 	                "id_facetrack": record['id'],
                         "id_person": data['person_id']
 	            }
 	        }
-	        response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+	        response = requests.post(task.task_model.model_url, data=json.dumps(payload), headers=json.loads(task.task_model.model_headers)).json()
                 if response['result']['code'] == 0 and request.user.id is not None:
                     facetrack = FaceTrack.objects.get(facetrack_id=record['id'])
                     facetrack.user_id = request.user.id
@@ -711,7 +694,7 @@ def viewPersonFacetrack(request, person_id):
             facetrack_image_path = facetrack_object.image_path
             facetrack_src_id = facetrack_object.src_id
             facetrack_tracking_time = facetrack_object.tracking_time
-            facetrack_imgs = facetrack_object.facetrackimage_set.filter(isdeleted=0)
+            facetrack_imgs = facetrack_object.facetrackimage_set.filter(isdeleted=0)[:30]
             facetrack_finished_by = get_object_or_404(get_user_model(), id=facetrack_object.user_id).username
             if facetrack_tracking_time is None:
                 facetrack_tracking_time = '1970-01-01 00:00:00'
@@ -746,16 +729,18 @@ def viewPersonFacetrack(request, person_id):
 @login_required(login_url='/usercenter/login')
 def deletePersonFacetrack(request, person_id):
     facetrack_id = request.GET.get('facetrack_id')
+    person = get_object_or_404(Person, id=person_id)
+
     payload = {
         "id": 1,
         "jsonrpc": "2.0",
         "method": "cancelfacetrackfromperson",
         "params": {
-            "appkey": settings.DEEP_FACE_APP_KEY,
+            "appkey": person.model.model_key,
             "id_facetrack": facetrack_id
         }
     }
-    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
+    response = requests.post(person.model.model_url, data=json.dumps(payload), headers=json.loads(person.model.model_headers)).json()
     if response['result']['code'] <> 0:
         messages.add_message(request, messages.INFO, u'删除FaceTrack序列失败，请联系系统管理员！')
         return redirect('/usercenter/person/' + person_id + '/facetrack')
@@ -765,32 +750,6 @@ def deletePersonFacetrack(request, person_id):
         facetrack.save()
         messages.add_message(request, messages.INFO, u'删除FaceTrack序列成功！')
         return redirect('/usercenter/person/' + person_id + '/facetrack')
-
-@login_required(login_url='/usercenter/login')
-def deletePersonImage(request, person_id):
-    site_info = SiteInfo.objects.first()
-    menu_list = Menu.objects.order_by('order')
-    menu_now = get_object_or_404(Menu, link='/usercenter/person')
-
-    person = get_object_or_404(Person, id=person_id)
-    imgpath = request.GET.get('img')
-    payload = {
-        "id": 1,
-        "jsonrpc": "2.0",
-        "method": "deletepersonimg",
-        "params": {
-            "appkey": settings.DEEP_FACE_APP_KEY,
-            "id": person.pid,
-            "img": imgpath
-        }
-    }
-    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-    if response['result']['code'] <> 0:
-        messages.add_message(request, messages.INFO, u'人物图片添加失败，请联系系统管理员！')
-        return redirect('/usercenter/person/' + person_id + '/image')
-    else:
-        messages.add_message(request, messages.INFO, u'删除图片记录成功！')
-        return redirect('/usercenter/person/' + person_id + '/image')
 
 @login_required(login_url='/usercenter/login')
 def statistics(request):

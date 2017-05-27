@@ -38,10 +38,28 @@ from tasks.models import *
 
 def showImage(request):
     if request.method == 'GET':
+        image_type = request.GET.get('type')
         id = request.GET.get('id')
         fn = request.GET.get('fn')
 
-        facetrack = FaceTrack.objects.get(facetrack_id=id)
-        facetrack_image = FaceTrackImage.objects.get(facetrack_id=facetrack.id, img_id=fn)
-        return HttpResponse(base64.decodestring(facetrack_image.img_base64), content_type='image/jpeg')
+        if int(image_type) == 0:
+            facetrack = FaceTrack.objects.get(facetrack_id=id)
+            facetrack_image = FaceTrackImage.objects.get(facetrack_id=facetrack.id, img_id=fn)
+            return HttpResponse(base64.decodestring(facetrack_image.img_base64), content_type='image/jpeg')
+        else:
+            person = Person.objects.get(pid = id)
+            payload = {
+                "id": 1,
+                "jsonrpc": "2.0",
+                "method": "getsingleimg",
+                "params": {
+                    "appkey": person.model.model_key,
+                    "type": int(image_type),
+                    "id": id,
+                    "path": fn
+                }
+            }
+            response = requests.post(person.model.model_url, data=json.dumps(payload), headers=json.loads(person.model.model_headers)).json()
+            if response['result']['code'] == 0:
+                return HttpResponse(base64.decodestring(response['result']['results']['img']), content_type='image/jpeg')
 

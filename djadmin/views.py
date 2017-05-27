@@ -304,6 +304,83 @@ def changeUserProfile(request, user_id):
     return render(request, 'djadmin/changeprofile.html', context)
 
 @staff_member_required(login_url='/djadmin/login')
+def model(request):
+    site_info = SiteInfo.objects.first()
+    menu_list = MenuInfo.objects.order_by('menu_order')
+    menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/model')
+
+    model_list = DeepFaceModel.objects.all()
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(model_list, 15)
+    try:
+        page = int(page)
+        models = paginator.page(page)
+    except PageNotAnInteger:
+        models = paginator.page(1)
+    except EmptyPage:
+        models = []
+
+    if page >= 5:
+        page_range = list(paginator.page_range)[page-5: page+4]
+    else:
+        page_range = list(paginator.page_range)[0: page+4]
+
+    context = {'site_info': site_info, 
+            'menu_list': menu_list,
+            'menu_now': menu_now,
+            'page_range': page_range,
+            'models': models,
+            'query_num': len(model_list)}
+    return render(request, 'djadmin/model.html', context)
+
+@staff_member_required(login_url='/djadmin/login')
+def addModel(request):
+    site_info = SiteInfo.objects.first()
+    menu_list = MenuInfo.objects.order_by('menu_order')
+    menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/model')
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        url = request.POST.get('url')
+        key = request.POST.get('key')
+        headers = request.POST.get('headers')
+        model = DeepFaceModel(model_name = name, 
+            model_url = url,
+            model_key = key,
+            model_headers = headers)
+        model.save()
+        messages.add_message(request, messages.INFO, u'创建模型成功！')
+        return redirect('/djadmin/model')
+
+    context = {'site_info': site_info, 
+            'menu_list': menu_list,
+            'menu_now': menu_now}
+    return render(request, 'djadmin/addmodel.html', context)
+
+@staff_member_required(login_url='/djadmin/login')
+def changeModel(request, model_id):
+    site_info = SiteInfo.objects.first()
+    menu_list = MenuInfo.objects.order_by('menu_order')
+    menu_now = get_object_or_404(MenuInfo, menu_link = '/djadmin/model')
+
+    model = get_object_or_404(DeepFaceModel, id = model_id)
+    if request.method == 'POST':
+        model.model_name = request.POST.get('name')
+        model.model_url = request.POST.get('url')
+        model.model_key = request.POST.get('key')
+        model.model_headers = request.POST.get('headers')
+        model.save()
+        messages.add_message(request, messages.INFO, u'模型保存成功！')
+        return redirect('/djadmin/model')
+
+    context = {'site_info': site_info, 
+            'menu_list': menu_list,
+            'model': model,
+            'menu_now': menu_now}
+    return render(request, 'djadmin/changemodel.html', context)
+
+@staff_member_required(login_url='/djadmin/login')
 def task(request):
     site_info = SiteInfo.objects.first()
     menu_list = MenuInfo.objects.order_by('menu_order')
@@ -343,23 +420,27 @@ def addTask(request):
     menu_list = MenuInfo.objects.order_by('menu_order')
     menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/task/add')
 
+    model_list = DeepFaceModel.objects.all()
     if request.method == 'POST':
         name = request.POST.get('name')
         keywords = request.POST.get('keywords')
         flag = request.POST.get('flag')
+        model = request.POST.get('model')
         description = request.POST.get('description')
         task = TaskInfo(task_name=name, 
             task_keywords=keywords,
             task_flag=flag,
             task_description=description,
-            task_status=TaskStatus.objects.get(id=1))
+            task_model=DeepFaceModel.objects.get(id = int(model)),
+            task_status=TaskStatus.objects.get(id = 1))
         task.save()
         messages.add_message(request, messages.INFO, u'创建任务成功！')
         return redirect('/djadmin/task')
 
     context = {'site_info': site_info, 
             'menu_list': menu_list,
-            'menu_now': menu_now}
+            'menu_now': menu_now,
+            'model_list': model_list}
     return render(request, 'djadmin/addtask.html', context)
 
 @staff_member_required(login_url='/djadmin/login')
@@ -368,11 +449,13 @@ def changeTask(request, task_id):
     menu_list = MenuInfo.objects.order_by('menu_order')
     menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/task')
 
+    model_list = DeepFaceModel.objects.all()
     task = get_object_or_404(TaskInfo, id=task_id)
     if request.method == 'POST':
         task.task_name = request.POST.get('name')
         task.task_keywords = request.POST.get('keywords')
         task.task_flag = request.POST.get('flag')
+        task.task_model_id = int(request.POST.get('model'))
         task.task_description = request.POST.get('description')
         task.save()
         messages.add_message(request, messages.INFO, u'任务信息保存成功！')
@@ -381,7 +464,8 @@ def changeTask(request, task_id):
     context = {'site_info': site_info, 
             'menu_list': menu_list,
             'task': task,
-            'menu_now': menu_now}
+            'menu_now': menu_now,
+            'model_list': model_list}
     return render(request, 'djadmin/changetask.html', context)
 
 @staff_member_required(login_url='/djadmin/login')
@@ -411,6 +495,50 @@ def uploadTask(request, task_id):
             'task': task,
             'menu_now': menu_now}
     return render(request, 'djadmin/uploadtask.html', context)
+
+@staff_member_required(login_url='/djadmin/login')
+def assignTask(request, task_id):
+    site_info = SiteInfo.objects.first()
+    menu_list = MenuInfo.objects.order_by('menu_order')
+    menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/task')
+
+    task = get_object_or_404(TaskInfo, id=task_id)
+    if request.method == 'POST':
+        username_list = request.POST.get('username').split(';')
+        for username in username_list:
+            if username and len(username):
+                try:
+                    user = get_user_model().objects.get(username=username)
+                    assignment = TaskAssign()
+                    assignment.task = task
+                    assignment.user = user
+                    if not TaskAssign.objects.filter(user = user, task = task).exists():
+                        assignment.save()
+                except Exception as e:
+                    pass
+        messages.add_message(request, messages.INFO, u'添加用户成功！')
+
+    context = {'site_info': site_info, 
+            'menu_list': menu_list,
+            'task': task,
+            'menu_now': menu_now}
+    return render(request, 'djadmin/assigntask.html', context)
+
+@staff_member_required(login_url='/djadmin/login')
+def deleteAssign(request, task_id, user_id):
+    http_referer_url = request.META.get('HTTP_REFERER')
+    assignment = TaskAssign.objects.get(task_id = task_id, user_id = user_id)
+    assignment.delete()
+    messages.add_message(request, messages.INFO, u'移除用户成功！')
+    return redirect(http_referer_url)
+
+@staff_member_required(login_url='/djadmin/login')
+def releaseTask(request, task_id):
+    task = get_object_or_404(TaskInfo, id=task_id)
+    task.task_status_id = 4
+    task.save()
+    messages.add_message(request, messages.INFO, u'任务发布成功！')
+    return redirect('/djadmin/task')
 
 @register.filter
 def divide(value, arg):
@@ -515,7 +643,7 @@ def person(request):
     menu_list = MenuInfo.objects.order_by('menu_order')
     menu_now = get_object_or_404(MenuInfo, menu_link='/djadmin/person')
 
-    person_list = Person.objects.filter(isdeleted=0).order_by('-facetracks_num')
+    person_list = Person.objects.filter(isdeleted=0).filter(created_time__gte=datetime(2017, 5, 10)).order_by('-facetracks_num')
     keyword = request.GET.get('q')
     if keyword and len(keyword):
         person_list = person_list.filter(name__contains=keyword.encode('utf-8'))
@@ -676,72 +804,6 @@ def deletePersonFacetrack(request, person_id):
         facetrack.save()
         messages.add_message(request, messages.INFO, u'删除FaceTrack序列成功！')
         return redirect(http_referer_url)
-
-@staff_member_required(login_url='/djadmin/login')
-def matchPerson2Person(request, person_id):
-    if len(person_id) >= 16:
-        person = get_object_or_404(Person, pid=person_id)
-    else:
-        person = get_object_or_404(Person, id=person_id)
-
-    person_matched = []
-    payload = {
-        "id": 1,
-        "jsonrpc": "2.0",
-        "method": "matchperson2person",
-        "params": {
-            "appkey": settings.DEEP_FACE_APP_KEY,
-   	    "id": person.pid,
-            "src_ids": []
-        }
-    }
-    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-    if response['result']['code'] <> 0:
-        messages.add_message(request, messages.INFO, u'Person检索失败，请联系系统管理员！')
-    else:
-        if response['result']['results'] <> None:
-            transaction_id = response['result']['results']['transId']
-
-            payload = {
-                "id": 1,
-                "jsonrpc": "2.0",
-                "method": "getmatchperson2personresult",
-                "params": {
-                    "appkey": settings.DEEP_FACE_APP_KEY,
-                    "id_person": person.pid,
-   	            "id_trans": transaction_id
-                }
-            }
-
-            response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-            if response['result']['results'] <> None and response['result']['results']['count']:
-                for person_id in response['result']['results']['matches']:
-                    payload = {
-                        "id": 1,
-                        "jsonrpc": "2.0",
-                        "method": "getpersoninfo",
-                        "params": {
-                            "appkey": settings.DEEP_FACE_APP_KEY,
-   	                    "id": person_id
-                        }
-                    }
-
-                    response = requests.post(settings.DEEP_FACE_URL, data=json.dumps(payload), headers=settings.DEEP_FACE_HEADERS).json()
-                    if response['result']['code'] == 0:
-                        person_images = []
-                        for img in response['result']['results']['imgs']:
-                            url = '/image/?type=1&id=' + person_id + '&fn=' + img
-                            person_images.append(url)
-
-                        person_matched.append({
-                            'person_id': person_id,
-                            'person_images': person_images
-                        })
-
-    context = {'page_range': page_range,
-            'persons': person_matched,
-            'query_num': len(person_list)}
-    return render(request, 'djadmin/showsimilarperson.html', context)
 
 @staff_member_required(login_url='/djadmin/login')
 def statistics(request):
