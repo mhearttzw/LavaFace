@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="yst" createEmptyFolders="true">
+    <serverData>
+      <paths name="yst">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/lavaFace" local="$PROJECT_DIR$" web="/lavaFace" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

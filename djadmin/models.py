@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 
+
 class SiteInfo(models.Model):
     site_name = models.CharField(u'网站名称', max_length=30)
     site_slogan = models.CharField('网站广告语', max_length=50)
@@ -19,6 +20,7 @@ class SiteInfo(models.Model):
         db_table = 'django_site_info'
         verbose_name = u'网站信息管理'
         verbose_name_plural = u'网站信息管理'
+
 
 class MenuInfo(models.Model):
     menu_name = models.CharField(u'菜单名称', max_length=30)

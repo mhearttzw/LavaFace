@@ -7,6 +7,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.timesince import timesince
 
+
 class DeepFaceModel(models.Model):
     model_name = models.CharField(u'模型名称', max_length=200)
     model_url = models.CharField(u'模型链接', max_length=200)
@@ -19,6 +20,7 @@ class DeepFaceModel(models.Model):
         verbose_name = u'模型管理'
         verbose_name_plural = u'模型管理'
 
+
 class TaskStatus(models.Model):
     status_description = models.CharField(u'状态信息', max_length=200, blank=True)
     created_time = models.DateTimeField(u'创建时间', auto_now_add=True, null=True)
@@ -28,10 +30,10 @@ class TaskStatus(models.Model):
         verbose_name = u'状态管理'
         verbose_name_plural = u'状态管理'
 
+
 class TaskInfo(models.Model):
     task_name = models.CharField(u'任务名称', max_length=200)
     task_description = models.TextField(u'任务描述')
-    task_keywords = models.CharField(u'关键字', max_length=200, blank=True)
     task_keywords = models.CharField(u'关键字', max_length=200, blank=True)
     task_flag = models.IntegerField(u'是否截取人脸', default=0)
     task_model = models.ForeignKey(DeepFaceModel, verbose_name=u'任务模型', on_delete=models.CASCADE)
@@ -73,6 +75,7 @@ class TaskInfo(models.Model):
 
     def get_finished_facetracks(self):
         return self.facetrack_set.filter(status=2)
+
 
 class TaskAssign(models.Model):
     task = models.ForeignKey(TaskInfo, verbose_name=u'任务信息', on_delete=models.CASCADE)

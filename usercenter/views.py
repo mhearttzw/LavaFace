@@ -43,9 +43,10 @@ from django.utils.timesince import timesince
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
+# 这里是模型导入
 from djadmin.models import SiteInfo
 from tasks.models import *
-
+# 从usercenter导入Menu、User模型
 from usercenter.models import Menu, User
 
 class UserCenter(View):
@@ -87,16 +88,19 @@ def login(request):
     context = {'site_info': site_info}
     return render(request, 'usercenter/login.html', context)
 
+
+# 装饰器，只允许登录的用户登录；但并不是单纯的跳转，而是会带一个next查询参数
+# 比如本地访问会是：http://127.0.0.1:8000/usercenter/login?next=/usercenter/log
 @login_required(login_url='/usercenter/login')
 def main(request):
     site_info = SiteInfo.objects.first()
     menu_list = Menu.objects.order_by('order')
 
     stats = {}
-    stats['task_num'] = TaskInfo.objects.filter(task_status_id__gte=4).count()
+    stats['task_num'] = TaskInfo.objects.filter(task_status_id=4).count()
     stats['user_num'] = get_user_model().objects.count()
-    stats['facetrack_num'] = FaceTrack.objects.exclude(status = 2).count()
-    stats['person_num'] = Person.objects.filter(isdeleted = 0).count()
+    stats['facetrack_num'] = FaceTrack.objects.exclude(status=2).count()
+    stats['person_num'] = Person.objects.filter(isdeleted=0).count()
 
     context = {'site_info': site_info, 
         'menu_list': menu_list,
@@ -104,6 +108,8 @@ def main(request):
         'stats': stats}
     return render(request, 'usercenter/main.html', context)
 
+
+# 个人信息查询展示，'我的资料'一栏
 @login_required(login_url='/usercenter/login')
 def profile(request):
     site_info = SiteInfo.objects.first()
@@ -111,6 +117,7 @@ def profile(request):
     menu_now = get_object_or_404(Menu, link='/usercenter/profile')
 
     user = get_object_or_404(get_user_model(), id=request.user.id)
+    # 如果是post请求，则更新数据库信息
     if request.method == 'POST':
         user.email = request.POST.get('email')
         user.address = request.POST.get('address')
@@ -118,7 +125,7 @@ def profile(request):
         user.intro = request.POST.get('intro')
         if len(request.FILES):
             avatar_blob = request.FILES['upload-avatar']
-            avatar_path = 'static/avatar/%s.jpg' % user_id
+            avatar_path = 'static/avatar/%s.jpg' % user.id
             with open(avatar_path, 'wb+') as destination:
                 for chunk in avatar_blob.chunks():
                     destination.write(chunk)
@@ -127,12 +134,14 @@ def profile(request):
         messages.add_message(request, messages.INFO, u'用户信息保存成功！')
         return redirect('/usercenter/profile')
 
-    context = {'site_info': site_info, 
-            'menu_list': menu_list,
-            'user': user,
-            'menu_now': menu_now}
+    context = {'site_info': site_info,
+               'menu_list': menu_list,
+               'user': user,
+               'menu_now': menu_now}
     return render(request, 'usercenter/profile.html', context)
 
+
+# 个人信息查询展示，'修改密码'一栏
 @login_required(login_url='/usercenter/login')
 def password(request):
     site_info = SiteInfo.objects.first()
@@ -140,10 +149,13 @@ def password(request):
     menu_now = get_object_or_404(Menu, link='/usercenter/password')
 
     user = get_object_or_404(get_user_model(), id=request.user.id)
+    # 接受当前页面内form表单post提交
     if request.method == 'POST':
+        # 调用Django内置修改密码函数
         form = SetPasswordForm(user, request.POST)
         if form.is_valid():
             user = form.save()
+            # Django内置消息模块，在模板中可引用messages变量
             messages.add_message(request, messages.INFO, u'修改密码成功！')
             return redirect('/usercenter/password')
         else:
@@ -156,27 +168,34 @@ def password(request):
             'menu_now': menu_now}
     return render(request, 'usercenter/password.html', context)
 
+
+# 左侧'任务中心'里'我的任务'一栏
 @login_required(login_url='/usercenter/login')
 def task(request):
     site_info = SiteInfo.objects.first()
     menu_list = Menu.objects.order_by('order')
     menu_now = get_object_or_404(Menu, link='/usercenter/task')
-
-    task_list = TaskInfo.objects.filter(task_status_id__gte = 4, taskassign__user_id = request.user.id).order_by('-created_time')
+    # 参数解释：task_status_id是字段名，gte是特征大于等于；taskassign是模型名，user_id是字段名
+    task_list = TaskInfo.objects.filter(task_status_id__gte = 4, taskassign__user_id=request.user.id).order_by('-created_time')
     keyword = request.GET.get('q')
     if keyword and len(keyword):
         task_list = task_list.filter(task_name__contains=keyword.encode('utf-8'))
-
+    # URL传参，request.GET属性值是字典，从里面取页码值，这里是字典的get用法
     page = request.GET.get('page', 1)
+    # 分页，每页15条数据
     paginator = Paginator(task_list, 15)
     try:
         page = int(page)
         tasks = paginator.page(page)
     except PageNotAnInteger:
+        # 如果请求的页码号不是整数，显示第一页
         tasks = paginator.page(1)
     except EmptyPage:
+        # 如果请求的页码太大是空页，则返回空值或最后一页
         tasks = []
+        # tasks = paginator.page(Paginator.num_pages)
 
+    # $这里是显示分页条，可以改写，参照自建博客
     if page >= 5:
         page_range = list(paginator.page_range)[page-5: page+4]
     else:
@@ -190,6 +209,7 @@ def task(request):
             'query_num': len(task_list)}
     return render(request, 'usercenter/task.html', context)
 
+
 @login_required(login_url='/usercenter/login')
 def processTask(request, task_id):
     site_info = SiteInfo.objects.first()
@@ -198,30 +218,39 @@ def processTask(request, task_id):
 
     task = get_object_or_404(TaskInfo, id=task_id)
     context = {'site_info': site_info, 
-            'menu_list': menu_list,
-            'task': task,
-            'menu_now': menu_now}
+               'menu_list': menu_list,
+               'task': task,
+               'menu_now': menu_now}
     return render(request, 'usercenter/processtask.html', context)
 
+
+# 这个装饰器将视图标记为不受中间件保护的保护
 @csrf_exempt
 def allocateTask(request, task_id):
     context = {}
     context['status'] = 0
     context['message'] = 'success'
 
+    # 用户权限不足
     if not TaskAssign.objects.filter(user = request.user, task_id = task_id).exists():
         context['status'] = -3
         context['message'] = u'权限不够！'
+        # json.dumps()将dict转化成str格式
         return HttpResponse(json.dumps(context), content_type="application/json")
 
+    # TaskInfo单个任务对应着facetrack很多小任务，一对多
     facetracks_total = FaceTrack.objects.filter(task=TaskInfo.objects.get(pk=task_id)).count()
+    # facetrack里status为2的话则是已经完成的facetrack
     facetracks_left = facetracks_total - FaceTrack.objects.filter(task=TaskInfo.objects.get(pk=task_id), status=2).count()
     facetracks_mine = FaceTrack.objects.filter(user_id=request.user.id, task=TaskInfo.objects.get(pk=task_id), status=2).count()
+    # 对应视图里我跳过的
     facetracks_mine_deleted = FaceTrack.objects.filter(user_id=request.user.id, task=TaskInfo.objects.get(pk=task_id), status=2, isdeleted=1).count()
 
     context['data'] = {'total': facetracks_total, 'left': facetracks_left, 'mine': facetracks_mine, 'deleted': facetracks_mine_deleted, 'items': []}
 
+    # 某个用户的facetrack任务数量
     facetracks = FaceTrack.objects.filter(user_id=request.user.id, task=TaskInfo.objects.get(pk=task_id), status=1)
+    # ？？，更新用户的facetrack任务量
     if not len(facetracks):
         query = 'UPDATE facetrack SET user_id = '+ str(request.user.id) + ', status = 1, allocated_time = now() WHERE user_id is null and task_id = ' + str(task_id) + ' LIMIT 1'
         with connection.cursor() as cursor:
@@ -231,6 +260,7 @@ def allocateTask(request, task_id):
     if not len(facetracks):
         facetracks_left_num = FaceTrack.objects.filter(task=TaskInfo.objects.get(pk=task_id)).exclude(status=2).count()
         if facetracks_left_num == 0:
+            # TaskInfo某个任务完成，刷新其状态属性，这里是task_status外键属性
             task = get_object_or_404(TaskInfo, id=task_id)
             task.task_status = TaskStatus.objects.get(id=5)
             task.save()
@@ -240,11 +270,14 @@ def allocateTask(request, task_id):
             context['status'] = -2
             context['message'] = u'任务紧张，请稍候刷新重试！'
     else:
+        # 获取指定用户facetracks任务集里面的第一个任务
         facetracks = facetracks[:1]
         for facetrack in facetracks:
             ''' 获取图片信息 '''
             images = []
-            facetrack_images = facetrack.facetrackimage_set.filter(isdeleted = 0)
+            # ？？isdeleted字段是什么意思
+            # -- facetrack_images = facetrack.facetrackimage_set.filter(isdeleted=0)
+            facetrack_images = facetrack.facetrackimage_set.all()
             for image in facetrack_images:
                 url = '/image/?type=0&id=' + facetrack.facetrack_id + '&fn=' + image.img_id
                 images.append(url)
@@ -262,10 +295,13 @@ def allocateTask(request, task_id):
                     'tracking_time': facetrack_tracking_time,
                     'src_id': facetrack.src_id,
                     'remark': facetrack.remark,
-                    'images': images
+                    'images': images,
+                    'images_length': len(facetrack_images)
                 }
             )
+    # 返回json数据供调用
     return HttpResponse(json.dumps(context), content_type="application/json")
+
 
 @csrf_exempt
 def matchFacetrack2Person(request, task_id):
@@ -277,7 +313,7 @@ def matchFacetrack2Person(request, task_id):
     if request.method == 'POST':
         facetrack_id = request.POST.get('facetrack_id')
 
-        task = TaskInfo.objects.get(id = task_id)
+        task = TaskInfo.objects.get(id=task_id)
         person_matches = None
 
 	payload = {
@@ -359,7 +395,7 @@ def matchPerson2Facetrack(request, task_id):
     if request.method == 'POST':
         person_id = request.POST.get('person_id')
 
-        task = TaskInfo.objects.get(id = task_id)
+        task = TaskInfo.objects.get(id= task_id)
 
 	payload = {
 	    "id": 1,

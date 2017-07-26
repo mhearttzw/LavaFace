@@ -36,6 +36,7 @@ from django.shortcuts import render
 
 from django.template.defaulttags import register
 from django.utils.http import (base36_to_int, is_safe_url, urlsafe_base64_decode, urlsafe_base64_encode)
+
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
@@ -44,6 +45,7 @@ from tasks.models import *
 
 from usercenter.forms import UserCreationForm
 from usercenter.models import User
+
 
 class DjadminCenter(View):
 
@@ -78,11 +80,15 @@ class DjadminCenter(View):
         auth.logout(request)
         return HttpResponse({"status": 0})
 
+
 def login(request):
     site_info = SiteInfo.objects.first()
     context = {'site_info': site_info}
     return render(request, 'djadmin/login.html', context)
 
+
+# 装饰器，staff身份判断，决定用户是否可以访问admin管理界面
+# 只允许staff身份的用户访问某个视图
 @staff_member_required(login_url='/djadmin/login')
 def main(request):
     site_info = SiteInfo.objects.first()
@@ -103,6 +109,7 @@ def main(request):
         'time_now': datetime.now(),
         'stats': stats}
     return render(request, 'djadmin/main.html', context)
+
 
 @staff_member_required(login_url='/djadmin/login')
 def setting(request):
@@ -128,6 +135,7 @@ def setting(request):
             'menu_now': menu_now}
     return render(request, 'djadmin/setting.html', context)
 
+
 @staff_member_required(login_url='/djadmin/login')
 def menu(request):
     site_info = SiteInfo.objects.first()
@@ -138,6 +146,7 @@ def menu(request):
             'menu_list': menu_list,
             'menu_now': menu_now}
     return render(request, 'djadmin/menu.html', context)
+
 
 @staff_member_required(login_url='/djadmin/login')
 def addMenu(request):
@@ -160,6 +169,7 @@ def addMenu(request):
             'menu_list': menu_list,
             'menu_now': menu_now}
     return render(request, 'djadmin/addmenu.html', context)
+
 
 @staff_member_required(login_url='/djadmin/login')
 def changeMenu(request, menu_id):
@@ -184,6 +194,7 @@ def changeMenu(request, menu_id):
             'menu_now': menu_now}
     return render(request, 'djadmin/changemenu.html', context)
 
+
 @staff_member_required(login_url='/djadmin/login')
 def deleteMenu(request, menu_id):
     site_info = SiteInfo.objects.first()
@@ -194,6 +205,7 @@ def deleteMenu(request, menu_id):
     menu.delete()
     messages.add_message(request, messages.INFO, u'菜单信息删除成功！')
     return redirect('/djadmin/menu')
+
 
 ''' user '''
 @staff_member_required(login_url='/djadmin/login')
@@ -229,6 +241,7 @@ def user(request):
             'users': users,
             'query_num': len(user_list)}
     return render(request, 'djadmin/user.html', context)
+
 
 @staff_member_required(login_url='/djadmin/login')
 def addUser(request):
